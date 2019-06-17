@@ -40,14 +40,22 @@ var (
 )
 
 const (
+	// Empty 无
+	Empty int = iota
+	// King 帅
+	King
 	// Rook 车
-	Rook int8 = iota
+	Rook
 	// Knight 马
 	Knight
+	// Cannon 炮
+	Cannon
+	// Advisor 士
+	Advisor
 	// Bishop 象
 	Bishop
-	// Advisors 士
-	Advisors
+	// Pawn 兵
+	Pawn
 )
 
 // Piece 位置信息.
