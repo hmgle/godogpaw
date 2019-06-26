@@ -1,6 +1,10 @@
 package engine
 
-import "github.com/willf/bitset"
+import (
+	"strings"
+
+	"github.com/willf/bitset"
+)
 
 /*
 F0 F1 F2 F3 F4 F5 F6 F7 F8 F9 FA FB FC FD FE FF
@@ -29,6 +33,46 @@ A0 A1 A2-A3-A4-A5-A6-A7-A8-A9-AA AB AC AD AE AF
 10 11 12 13 14 15 16 17 18 19 1A 1B 1C 1D 1E 1F
 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
 */
+
+const (
+	fileNames = "##abcdefghi#####"
+	rankNames = "##0123456789####"
+)
+
+// SquareName 返回位置的字符表示.
+// 如 sq = 0x22, 返回 "a0".
+// 如 sq = 0x23, 返回 "b0".
+// 如 sq = 0x32, 返回 "a1".
+func SquareName(sq int) string {
+	file := fileNames[sq&0x0F]
+	rank := rankNames[sq>>4]
+	return string(file) + string(rank)
+}
+
+func MakeSquare(file, rank int) int {
+	return rank<<4 | file
+}
+
+const (
+	SquareNone = -1
+)
+
+func ParseSquare(s string) int {
+	if len(s) < 2 || s == "-" {
+		return SquareNone
+	}
+	file := strings.Index(fileNames, s[0:1])
+	rank := strings.Index(rankNames, s[1:2])
+	return MakeSquare(file, rank)
+}
+
+func File(sq int) int {
+	return sq & 0x0F
+}
+
+func Rank(sq int) int {
+	return sq >> 4
+}
 
 var (
 	// GlobalBoard 全局 board.

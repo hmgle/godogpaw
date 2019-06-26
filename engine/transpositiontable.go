@@ -8,6 +8,7 @@ var (
 )
 
 // PieceSquareKey 返回该棋子（piece, side）在 square 的随机数.
+// side: 红行为真.
 func PieceSquareKey(piece int, side bool, square uint) uint64 {
 	return pieceSquareKey[MakePiece(piece, side)][square]
 }
