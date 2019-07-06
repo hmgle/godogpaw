@@ -206,6 +206,26 @@ func (p *Position) isKnightCheck() bool {
 	return false
 }
 
+// isPawnCheck 返回是否被兵将.
+func (p *Position) isPawnCheck() bool {
+	var (
+		kingSq uint
+		selfPs *bitset.BitSet
+		sidePs *bitset.BitSet
+	)
+	if p.IsRedMove {
+		selfPs = p.Red
+		sidePs = p.Black
+	} else {
+		selfPs = p.Black
+		sidePs = p.Red
+	}
+	kingSq, _ = p.Kings.Intersection(selfPs).NextSet(0)
+	pawnAttacks := AttackKingPawnSqs[int(kingSq)]
+	sidePawns := p.Pawns.Intersection(sidePs)
+	return pawnAttacks.Intersection(sidePawns).Any()
+}
+
 // isCannonCheck 返回是否炮将.
 func (p *Position) isCannonCheck() bool {
 	var (
@@ -278,7 +298,6 @@ func (p *Position) isRookCheck() bool {
 
 // IsCheck 返回是否被将.
 func (p *Position) IsCheck() bool {
-	// TODO
 	if p.isKingCheck() {
 		return true
 	}
@@ -294,7 +313,8 @@ func (p *Position) IsCheck() bool {
 		return true
 	}
 
-	// 检测是否被兵将
-	// 先判断将附近的三个兵位是否有对方兵
+	if p.isPawnCheck() {
+		return true
+	}
 	return false
 }

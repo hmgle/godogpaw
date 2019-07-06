@@ -98,6 +98,9 @@ var (
 
 	// KnightAttacks 马攻击位置
 	KnightAttacks = make(map[int]*bitset.BitSet)
+
+	// AttackKingPawnSqs 威胁将帅的兵的位置
+	AttackKingPawnSqs = make(map[int]*bitset.BitSet)
 )
 
 const (
@@ -185,6 +188,29 @@ func init() {
 			tmpBitSet.Set(uint(sq - 0x10 - 2))
 			tmpBitSet.InPlaceIntersection(BoardMask)
 			KnightAttacks[sq] = tmpBitSet
+		}
+	}
+
+	// 设置威胁帅的卒位置
+	for rank := 2; rank <= 0x04; rank++ {
+		for file := 0x05; file <= 0x07; file++ {
+			sq := MakeSquare(file, rank)
+			tmpBitSet := bitset.New(256)
+			tmpBitSet.Set(uint(sq) - 1)
+			tmpBitSet.Set(uint(sq) + 1)
+			tmpBitSet.Set(uint(sq) + 0x10)
+			AttackKingPawnSqs[sq] = tmpBitSet
+		}
+	}
+	// 设置威胁将的兵位置
+	for rank := 0x09; rank <= 0x0b; rank++ {
+		for file := 0x05; file <= 0x07; file++ {
+			sq := MakeSquare(file, rank)
+			tmpBitSet := bitset.New(256)
+			tmpBitSet.Set(uint(sq) - 1)
+			tmpBitSet.Set(uint(sq) + 1)
+			tmpBitSet.Set(uint(sq) - 0x10)
+			AttackKingPawnSqs[sq] = tmpBitSet
 		}
 	}
 }
