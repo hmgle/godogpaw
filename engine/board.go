@@ -66,10 +66,12 @@ func ParseSquare(s string) int {
 	return MakeSquare(file, rank)
 }
 
+// File 列.
 func File(sq int) int {
 	return sq & 0x0F
 }
 
+// Rank 行.
 func Rank(sq int) int {
 	return sq >> 4
 }
@@ -81,6 +83,18 @@ var (
 	RedBoard = bitset.New(256)
 	// BlackBoard 黑方 board.
 	BlackBoard = bitset.New(256)
+
+	// BoardMask 棋盘
+	BoardMask = bitset.New(256)
+
+	// FileMasks 列屏蔽
+	FileMasks = []*bitset.BitSet{}
+
+	// RankMasks 行屏蔽
+	RankMasks = []*bitset.BitSet{}
+
+	// RookAttacks 车攻击位置
+	RookAttacks = make(map[int]*bitset.BitSet)
 )
 
 const (
@@ -107,4 +121,50 @@ type Piece struct {
 	Position uint8
 	Name     int8
 	Color    bool // is red?
+}
+
+func init() {
+	for rank := 2; rank <= 0x0b; rank++ {
+		for file := 2; file <= 0x0a; file++ {
+			sq := MakeSquare(file, rank)
+			BoardMask.Set(uint(sq))
+		}
+	}
+	// 初始化列屏蔽位.
+	for file := 0; file <= 0x0a; file++ {
+		newBitSet := bitset.New(256)
+		for rank := 2; rank <= 0x0b; rank++ {
+			sq := MakeSquare(file, rank)
+			newBitSet.Set(uint(sq))
+		}
+		FileMasks = append(FileMasks, newBitSet)
+	}
+	// 初始化行屏蔽位.
+	for rank := 0; rank <= 0x0b; rank++ {
+		newBitSet := bitset.New(256)
+		for file := 0; file <= 0x0a; file++ {
+			sq := MakeSquare(file, rank)
+			newBitSet.Set(uint(sq))
+		}
+		RankMasks = append(RankMasks, newBitSet)
+	}
+
+	for rank := 2; rank <= 0x0b; rank++ {
+		for file := 2; file <= 0x0a; file++ {
+			sq := MakeSquare(file, rank)
+			tmpBitSet := bitset.New(256)
+			// 与 sq 同一行
+			for i := sq & 0xf0; i <= sq+0x0f; i++ {
+				tmpBitSet.Set(uint(i))
+			}
+			// 与 sq 同一列
+			for i := sq & 0x0f; i <= 0xff; i = i + 0x1f {
+				tmpBitSet.Set(uint(i))
+			}
+			retBitSet := tmpBitSet.Intersection(BoardMask)
+			// 清除本格
+			retBitSet.Clear(uint(sq))
+			RookAttacks[sq] = retBitSet
+		}
+	}
 }
