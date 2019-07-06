@@ -164,10 +164,10 @@ func init() {
 			for i := sq & 0x0f; i <= 0xff; i = i + 0x1f {
 				tmpBitSet.Set(uint(i))
 			}
-			retBitSet := tmpBitSet.Intersection(BoardMask)
+			tmpBitSet.InPlaceIntersection(BoardMask)
 			// 清除本格
-			retBitSet.Clear(uint(sq))
-			RookAttacks[sq] = retBitSet
+			tmpBitSet.Clear(uint(sq))
+			RookAttacks[sq] = tmpBitSet
 		}
 	}
 
@@ -183,8 +183,8 @@ func init() {
 			tmpBitSet.Set(uint(sq - 0x10*2 - 1))
 			tmpBitSet.Set(uint(sq - 0x10 + 2))
 			tmpBitSet.Set(uint(sq - 0x10 - 2))
-			retBitSet := tmpBitSet.Intersection(BoardMask)
-			KnightAttacks[sq] = retBitSet
+			tmpBitSet.InPlaceIntersection(BoardMask)
+			KnightAttacks[sq] = tmpBitSet
 		}
 	}
 }

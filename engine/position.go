@@ -154,12 +154,55 @@ func (p *Position) IsAnyPieceBetweenRank(sq1, sq2 int) bool {
 	return int(next) < max
 }
 
+// knightAttacks 返回马位于 sq 位置时的攻击点.
+func (p *Position) knightAttacks(sq uint) *bitset.BitSet {
+	mask := bitset.New(256)
+	gb := p.Black.Union(p.Red)
+	if gb.Test(uint(sq) + 1) {
+		mask.Set(uint(sq) + 0x10 + 2)
+		mask.Set(sq - 0x10 + 2)
+	}
+	if gb.Test(sq - 1) {
+		mask.Set(sq + 0x10 - 2)
+		mask.Set(sq - 0x10 - 2)
+	}
+	if gb.Test(sq + 0x10) {
+		mask.Set(sq + 0x20 + 1)
+		mask.Set(sq + 0x20 - 1)
+	}
+	if gb.Test(sq - 0x10) {
+		mask.Set(sq - 0x20 + 1)
+		mask.Set(sq - 0x20 - 1)
+	}
+	return KnightAttacks[int(sq)].Difference(mask)
+}
+
 // isKnightCheck 返回是否马将.
 func (p *Position) isKnightCheck() bool {
-	// TODO
-	// 检测是否被马将
+	var (
+		kingSq uint
+		selfPs *bitset.BitSet
+		sidePs *bitset.BitSet
+	)
+	if p.IsRedMove {
+		selfPs = p.Red
+		sidePs = p.Black
+	} else {
+		selfPs = p.Black
+		sidePs = p.Red
+	}
+	kingSq, _ = p.Kings.Intersection(selfPs).NextSet(0)
+	knightAttacks := KnightAttacks[int(kingSq)]
+	sideKnights := p.Knights.Intersection(sidePs)
 	// 先判断将附近的八个马位是否有对方的马
-	// 再判断是否别马腿
+	if !knightAttacks.Intersection(sideKnights).Any() {
+		return false
+	}
+	for k, e := sideKnights.NextSet(0); e; k, e = sideKnights.NextSet(k + 1) {
+		if p.knightAttacks(k).Test(kingSq) {
+			return true
+		}
+	}
 	return false
 }
 
