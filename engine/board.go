@@ -95,6 +95,9 @@ var (
 
 	// RookAttacks 车攻击位置
 	RookAttacks = make(map[int]*bitset.BitSet)
+
+	// KnightAttacks 马攻击位置
+	KnightAttacks = make(map[int]*bitset.BitSet)
 )
 
 const (
@@ -165,6 +168,23 @@ func init() {
 			// 清除本格
 			retBitSet.Clear(uint(sq))
 			RookAttacks[sq] = retBitSet
+		}
+	}
+
+	for rank := 2; rank <= 0x0b; rank++ {
+		for file := 2; file <= 0x0a; file++ {
+			sq := MakeSquare(file, rank)
+			tmpBitSet := bitset.New(256)
+			tmpBitSet.Set(uint(sq + 0x10*2 + 1))
+			tmpBitSet.Set(uint(sq + 0x10*2 - 1))
+			tmpBitSet.Set(uint(sq + 0x10 + 2))
+			tmpBitSet.Set(uint(sq + 0x10 - 2))
+			tmpBitSet.Set(uint(sq - 0x10*2 + 1))
+			tmpBitSet.Set(uint(sq - 0x10*2 - 1))
+			tmpBitSet.Set(uint(sq - 0x10 + 2))
+			tmpBitSet.Set(uint(sq - 0x10 - 2))
+			retBitSet := tmpBitSet.Intersection(BoardMask)
+			KnightAttacks[sq] = retBitSet
 		}
 	}
 }

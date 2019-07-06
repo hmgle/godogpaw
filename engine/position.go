@@ -72,26 +72,50 @@ func (p *Position) isKingCheck() bool {
 	}
 
 	return !p.IsAnyPieceBetweenFile(int(redKing), int(blackKing))
+}
 
-	/*
-		// 中间是否有阻挡
-		file := File(int(redKing))
-		gb := p.Black.Union(p.Red)
-		fileMask := gb.Intersection(FileMasks[file])
-		if fileMask.Count() == 2 { // 除了将帅外，没有阻挡
-			return true
-		}
-		for i, e := fileMask.NextSet(redKing); e; i, e = fileMask.NextSet(i + 1) {
-			if i > redKing && i < blackKing {
-				// 中间有阻挡
-				return false
-			}
-			if i == blackKing {
-				break
-			}
-		}
-		return true
-	*/
+// IsOnePieceBetweenFile 判断同一列的两个棋子(sq1, sq2)之间是否有且仅有一个棋子.
+// sq1, sq2 必须是同一列的，即 File(sq1) == File(sq2).
+func (p *Position) IsOnePieceBetweenFile(sq1, sq2 int) bool {
+	file := File(sq1)
+	if File(sq2) != file {
+		log.Fatalf("sq1(%d) and sq2(%d) is not in same file", sq1, sq2)
+	}
+
+	min, max := sq1, sq2
+	if sq1 > sq2 {
+		min, max = sq2, sq1
+	}
+	gb := p.Black.Union(p.Red)
+	fileMask := gb.Intersection(FileMasks[file])
+	next, _ := fileMask.NextSet(uint(min + 1))
+	if int(next) >= max {
+		return false
+	}
+	next, _ = fileMask.NextSet(next + 1)
+	return int(next) == max
+}
+
+// IsOnePieceBetweenRank 判断同一行的两个棋子(sq1, sq2)之间是否有且仅有一个棋子.
+// sq1, sq2 必须是同一行的，即 Rank(sq1) == Rank(sq2).
+func (p *Position) IsOnePieceBetweenRank(sq1, sq2 int) bool {
+	rank := Rank(sq1)
+	if Rank(sq2) != rank {
+		log.Fatalf("sq1(%d) and sq2(%d) is not in same rank", sq1, sq2)
+	}
+
+	min, max := sq1, sq2
+	if sq1 > sq2 {
+		min, max = sq2, sq1
+	}
+	gb := p.Black.Union(p.Red)
+	rankMask := gb.Intersection(RankMasks[rank])
+	next, _ := rankMask.NextSet(uint(min + 1))
+	if int(next) >= max {
+		return false
+	}
+	next, _ = rankMask.NextSet(next + 1)
+	return int(next) == max
 }
 
 // IsAnyPieceBetweenFile 判断同一列的两个棋子(sq1, sq2)之间是否还有其他棋子.
@@ -128,6 +152,50 @@ func (p *Position) IsAnyPieceBetweenRank(sq1, sq2 int) bool {
 	rankMask := gb.Intersection(RankMasks[rank])
 	next, _ := rankMask.NextSet(uint(min + 1))
 	return int(next) < max
+}
+
+// isKnightCheck 返回是否马将.
+func (p *Position) isKnightCheck() bool {
+	// TODO
+	// 检测是否被马将
+	// 先判断将附近的八个马位是否有对方的马
+	// 再判断是否别马腿
+	return false
+}
+
+// isCannonCheck 返回是否炮将.
+func (p *Position) isCannonCheck() bool {
+	var (
+		kingSq uint
+		selfPs *bitset.BitSet
+		sidePs *bitset.BitSet
+	)
+	if p.IsRedMove {
+		selfPs = p.Red
+		sidePs = p.Black
+	} else {
+		selfPs = p.Black
+		sidePs = p.Red
+	}
+	kingSq, _ = p.Kings.Intersection(selfPs).NextSet(0)
+	rookAttacks := RookAttacks[int(kingSq)]
+	sideCannons := p.Cannons.Intersection(sidePs)
+	// 先判断是否己方帅同一行及同一列有没有对方炮
+	if !rookAttacks.Intersection(sideCannons).Any() {
+		return false
+	}
+	for c, e := sideCannons.NextSet(0); e; c, e = sideCannons.NextSet(c + 1) {
+		if File(int(c)) == File(int(kingSq)) { // 炮将同一列
+			if p.IsOnePieceBetweenFile(int(c), int(kingSq)) { // 中间一子隔挡
+				return true
+			}
+		} else { // 同一行
+			if p.IsOnePieceBetweenRank(int(c), int(kingSq)) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // isRookCheck 返回是否车将.
@@ -176,12 +244,12 @@ func (p *Position) IsCheck() bool {
 		return true
 	}
 
-	// 检测是否被马将
-	// 先判断将附近的八个马位是否有对方的马
-	// 再判断是否别马腿
-
-	// 检测是否被炮将
-	// 先判断是否炮将在同一行或列
+	if p.isCannonCheck() {
+		return true
+	}
+	if p.isKnightCheck() {
+		return true
+	}
 
 	// 检测是否被兵将
 	// 先判断将附近的三个兵位是否有对方兵
