@@ -22,12 +22,15 @@ type Position struct {
 
 	Checkers *bitset.BitSet
 
+	// PiecesSq [256]int // 存放每个位置的棋子
+
 	IsRedMove bool
 	// Key 当前局面哈希
 	Key uint64
 }
 
 // WhatPiece 返回 sq 位置的棋子类型.
+// XXX 可用一个 256 数组 PiecesSq 存储每个位置的棋子类型提高速度.
 func (p *Position) WhatPiece(sq uint) int {
 	if !p.Red.Test(sq) && !p.Black.Test(sq) {
 		return Empty
