@@ -90,17 +90,28 @@ func GenAllMoves(p *Position) []Move {
 	for from, e := cannons.NextSet(0); e; from, e = cannons.NextSet(from + 1) {
 		deltas := []int{0x10, -0x10, 0x01, -0x01} // 上下左右四个方向
 		for _, delta := range deltas {
+			afterShelf := false // 炮是否翻过架子
 			for i := uint(1); i <= 9; i++ {
 				to := from + i*uint(delta)
 				if !IsInBoard(to) { // 不在棋盘了
 					break
 				}
 				if allPieces.Test(to) { // 阻挡
-					// TODO 判断前面能否吃子
+					if !afterShelf {
+						afterShelf = true
+						continue
+					}
+					// 翻过了炮架，判断能否吃子
+					if oppPieces.Test(to) { // 对方棋子，可吃
+						mov := MakeMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove),
+							MakePiece(p.WhatPiece(to), !p.IsRedMove))
+						movs = append(movs, mov)
+						break
+					}
 					break
 				}
 				// 不吃子
-				mov := MakeMove(int(from), int(to), MakePiece(Rook, p.IsRedMove), Empty)
+				mov := MakeMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove), Empty)
 				movs = append(movs, mov)
 			}
 		}
