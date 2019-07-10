@@ -52,6 +52,7 @@ func GenAllMoves(p *Position) []Move {
 	var (
 		ownPieces *bitset.BitSet
 		oppPieces *bitset.BitSet
+		allPieces *bitset.BitSet = p.Red.Union(p.Black)
 	)
 	if p.IsRedMove {
 		ownPieces, oppPieces = p.Red, p.Black
@@ -69,13 +70,33 @@ func GenAllMoves(p *Position) []Move {
 		for _, delta := range deltas {
 			for i := uint(1); i <= 9; i++ {
 				to := from + i*uint(delta)
-				if !IsInBoard(to) { // 不在棋盘了
+				if ownPieces.Test(to) || !IsInBoard(to) { // 遇到自己棋子或不在棋盘了
 					break
 				}
 				if oppPieces.Test(to) { // 吃子
 					mov := MakeMove(int(from), int(to), MakePiece(Rook, p.IsRedMove),
 						MakePiece(p.WhatPiece(to), !p.IsRedMove))
 					movs = append(movs, mov)
+					break
+				}
+				// 不吃子
+				mov := MakeMove(int(from), int(to), MakePiece(Rook, p.IsRedMove), Empty)
+				movs = append(movs, mov)
+			}
+		}
+	}
+	// 炮的着法
+	cannons := p.Cannons.Intersection(ownPieces)
+	for from, e := cannons.NextSet(0); e; from, e = cannons.NextSet(from + 1) {
+		deltas := []int{0x10, -0x10, 0x01, -0x01} // 上下左右四个方向
+		for _, delta := range deltas {
+			for i := uint(1); i <= 9; i++ {
+				to := from + i*uint(delta)
+				if !IsInBoard(to) { // 不在棋盘了
+					break
+				}
+				if allPieces.Test(to) { // 阻挡
+					// TODO 判断前面能否吃子
 					break
 				}
 				// 不吃子
