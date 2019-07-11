@@ -110,11 +110,18 @@ func GenAllMoves(p *Position) []Move {
 					}
 					break
 				}
-				// 不吃子
-				mov := MakeMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				if !afterShelf {
+					// 不吃子
+					mov := MakeMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove), Empty)
+					movs = append(movs, mov)
+				}
 			}
 		}
+	}
+	// 马的着法
+	knights := p.Knights.Intersection(ownPieces)
+	for from, e := knights.NextSet(0); e; from, e = knights.NextSet(from + 1) {
+		// TODO
 	}
 	return movs
 }
