@@ -121,7 +121,17 @@ func GenAllMoves(p *Position) []Move {
 	// 马的着法
 	knights := p.Knights.Intersection(ownPieces)
 	for from, e := knights.NextSet(0); e; from, e = knights.NextSet(from + 1) {
-		// TODO
+		tos := p.knightAttacks(from)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				mov := MakeMove(int(from), int(to), MakePiece(Knight, p.IsRedMove),
+					MakePiece(p.WhatPiece(to), !p.IsRedMove))
+				movs = append(movs, mov)
+			} else if !ownPieces.Test(to) { // 不吃子
+				mov := MakeMove(int(from), int(to), MakePiece(Knight, p.IsRedMove), Empty)
+				movs = append(movs, mov)
+			}
+		}
 	}
 	return movs
 }
