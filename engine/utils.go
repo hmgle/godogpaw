@@ -3,6 +3,8 @@ package engine
 import (
 	"strings"
 	"unicode"
+
+	"github.com/willf/bitset"
 )
 
 // MakePiece 返回棋子的数字描述.
@@ -35,4 +37,12 @@ func GetPieceTypeAndSide(piece int) (piectType int, isRedSide bool) {
 // IsInBoard 返回 sq 这个位置是否在棋盘内.
 func IsInBoard(sq uint) bool {
 	return BoardMask.Test(sq)
+}
+
+// LegalPawnMvs 返回 sq 这个位置兵卒的合法着法位置.
+func LegalPawnMvs(sq int, isRedSide bool) *bitset.BitSet {
+	if isRedSide {
+		return LegalRedPawnMvs[sq]
+	}
+	return LegalBlackPawnMvs[sq]
 }

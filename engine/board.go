@@ -101,6 +101,11 @@ var (
 
 	// AttackKingPawnSqs 威胁将帅的兵的位置
 	AttackKingPawnSqs = make(map[int]*bitset.BitSet)
+
+	// LegalRedPawnMvs 兵的合法着法位置
+	LegalRedPawnMvs [0xBB]*bitset.BitSet
+	// LegalBlackPawnMvs 卒的合法着法位置
+	LegalBlackPawnMvs [0xBB]*bitset.BitSet
 )
 
 const (
@@ -211,6 +216,49 @@ func init() {
 			tmpBitSet.Set(uint(sq) + 1)
 			tmpBitSet.Set(uint(sq) - 0x10)
 			AttackKingPawnSqs[sq] = tmpBitSet
+		}
+	}
+
+	// 兵的合法着法位置
+	for rank := 5; rank <= 6; rank++ {
+		for file := 2; file <= 0x0b; file++ {
+			sq := MakeSquare(file, rank)
+			tmpBitSet := bitset.New(256)
+			tmpBitSet.Set(uint(sq) + 0x10)
+			tmpBitSet.InPlaceIntersection(BoardMask)
+			LegalRedPawnMvs[sq] = tmpBitSet
+		}
+	}
+	for rank := 7; rank <= 0x0b; rank++ {
+		for file := 2; file <= 0x0b; file++ {
+			sq := MakeSquare(file, rank)
+			tmpBitSet := bitset.New(256)
+			tmpBitSet.Set(uint(sq) - 1)
+			tmpBitSet.Set(uint(sq) + 1)
+			tmpBitSet.Set(uint(sq) + 0x10)
+			tmpBitSet.InPlaceIntersection(BoardMask)
+			LegalRedPawnMvs[sq] = tmpBitSet
+		}
+	}
+	// 卒的合法着法位置
+	for rank := 8; rank >= 7; rank-- {
+		for file := 2; file <= 0x0b; file++ {
+			sq := MakeSquare(file, rank)
+			tmpBitSet := bitset.New(256)
+			tmpBitSet.Set(uint(sq) - 0x10)
+			tmpBitSet.InPlaceIntersection(BoardMask)
+			LegalBlackPawnMvs[sq] = tmpBitSet
+		}
+	}
+	for rank := 6; rank <= 0x02; rank-- {
+		for file := 2; file <= 0x0b; file++ {
+			sq := MakeSquare(file, rank)
+			tmpBitSet := bitset.New(256)
+			tmpBitSet.Set(uint(sq) - 1)
+			tmpBitSet.Set(uint(sq) + 1)
+			tmpBitSet.Set(uint(sq) - 0x10)
+			tmpBitSet.InPlaceIntersection(BoardMask)
+			LegalBlackPawnMvs[sq] = tmpBitSet
 		}
 	}
 }

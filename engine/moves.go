@@ -133,5 +133,20 @@ func GenAllMoves(p *Position) []Move {
 			}
 		}
 	}
+	// 卒的着法
+	pawns := p.Pawns.Intersection(ownPieces)
+	for from, e := pawns.NextSet(0); e; from, e = pawns.NextSet(from + 1) {
+		tos := LegalPawnMvs(int(from), p.IsRedMove)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				mov := MakeMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove),
+					MakePiece(p.WhatPiece(to), !p.IsRedMove))
+				movs = append(movs, mov)
+			} else if !ownPieces.Test(to) { // 不吃子
+				mov := MakeMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove), Empty)
+				movs = append(movs, mov)
+			}
+		}
+	}
 	return movs
 }
