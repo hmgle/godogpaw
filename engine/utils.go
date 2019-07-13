@@ -46,3 +46,19 @@ func LegalPawnMvs(sq int, isRedSide bool) *bitset.BitSet {
 	}
 	return LegalBlackPawnMvs[sq]
 }
+
+// LegalAdvisorMvs 返回 sq 这个位置士的合法着法位置.
+func LegalAdvisorMvs(sq uint) *bitset.BitSet {
+	movs := bitset.New(256)
+	switch sq {
+	case 0x25, 0x27, 0x45, 0x47:
+		movs.Set(0x36)
+	case 0x36:
+		movs.Set(0x25).Set(0x27).Set(0x45).Set(0x47)
+	case 0x95, 0x97, 0xb5, 0xb7:
+		movs.Set(0xa6)
+	case 0xa6:
+		movs.Set(0x95).Set(0x97).Set(0xb5).Set(0xb7)
+	}
+	return movs
+}

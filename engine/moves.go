@@ -163,7 +163,22 @@ func GenAllMoves(p *Position) []Move {
 			}
 		}
 	}
-	return movs
 	// 士的着法
+	advisors := p.Advisors.Intersection(ownPieces)
+	for from, e := advisors.NextSet(0); e; from, e = advisors.NextSet(from + 1) {
+		tos := LegalAdvisorMvs(from)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				mov := MakeMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove),
+					MakePiece(p.WhatPiece(to), !p.IsRedMove))
+				movs = append(movs, mov)
+			} else if !ownPieces.Test(to) { // 不吃子
+				mov := MakeMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove), Empty)
+				movs = append(movs, mov)
+			}
+		}
+	}
+
+	return movs
 	// 将的着法
 }
