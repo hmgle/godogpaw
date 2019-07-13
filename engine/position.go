@@ -321,3 +321,32 @@ func (p *Position) IsCheck() bool {
 	}
 	return false
 }
+
+// AllPieces 返回所有棋子.
+func (p *Position) AllPieces() *bitset.BitSet {
+	return p.Red.Union(p.Black)
+}
+
+// LegalBishopMvs 返回 sq 这个位置象的合法着法位置.
+func (p *Position) LegalBishopMvs(sq uint) *bitset.BitSet {
+	allPieces := p.AllPieces()
+	mvsBs := bitset.New(256)
+	if sq < 0x50 { // 相不能过河
+		if !allPieces.Test(sq + 0x10 + 0x01) {
+			mvsBs.Set(sq + 0x20 + 0x02)
+		}
+		if !allPieces.Test(sq + 0x10 - 0x01) {
+			mvsBs.Set(sq + 0x20 - 0x02)
+		}
+	}
+	if sq > 0x80 { // 象不能过河
+		if !allPieces.Test(sq - 0x10 - 0x01) {
+			mvsBs.Set(sq - 0x20 - 0x02)
+		}
+		if !allPieces.Test(sq - 0x10 + 0x01) {
+			mvsBs.Set(sq - 0x20 + 0x02)
+		}
+	}
+	mvsBs.InPlaceIntersection(BoardMask)
+	return mvsBs
+}
