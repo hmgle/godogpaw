@@ -178,7 +178,19 @@ func GenAllMoves(p *Position) []Move {
 			}
 		}
 	}
-
-	return movs
 	// 将的着法
+	kingBitSet := p.Kings.Intersection(ownPieces)
+	kingSq, _ := kingBitSet.NextSet(0)
+	tos := LegalKingMvs[int(kingSq)]
+	for to, e := tos.NextSet(0); e; to, e = tos.NextSet(to + 1) {
+		if oppPieces.Test(to) { // 吃子
+			mov := MakeMove(int(kingSq), int(to), MakePiece(King, p.IsRedMove),
+				MakePiece(p.WhatPiece(to), !p.IsRedMove))
+			movs = append(movs, mov)
+		} else if !ownPieces.Test(to) { // 不吃子
+			mov := MakeMove(int(kingSq), int(to), MakePiece(King, p.IsRedMove), Empty)
+			movs = append(movs, mov)
+		}
+	}
+	return movs
 }
