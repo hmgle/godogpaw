@@ -8,10 +8,10 @@ type Board interface {
 	AllMoves() []Move
 	MakeMove(Move)
 	UnMakeMove(Move)
-	Evaluate() int32
+	Evaluate() int
 }
 
-func AlphaBetaSearch(board Board, depth uint8, alpha, beta int32) (bestMove Move, score int32) {
+func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, score int) {
 	if depth == 0 {
 		return nil, board.Evaluate()
 	}
@@ -47,7 +47,7 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int32) (bestMove Move
 	}
 }
 
-func alphaBetaSearch(board Board, depth uint8, alpha, beta int32) (score int32) {
+func alphaBetaSearch(board Board, depth uint8, alpha, beta int) (score int) {
 	if depth == 0 {
 		return board.Evaluate()
 	}
