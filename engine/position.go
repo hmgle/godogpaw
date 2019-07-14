@@ -29,6 +29,10 @@ type Position struct {
 	Key uint64
 }
 
+func (p *Position) IsMaximizingPlayerTurn() bool {
+	return p.IsRedMove
+}
+
 // WhatPiece 返回 sq 位置的棋子类型.
 // XXX 可用一个 256 数组 PiecesSq 存储每个位置的棋子类型提高速度.
 func (p *Position) WhatPiece(sq uint) int {
