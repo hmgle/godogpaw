@@ -61,7 +61,6 @@ func GenAllMoves(p *Position) []Move {
 	}
 	// target := ownPieces.Complement()
 	// XXX 被将时可缩小 target 范围
-	// TODO
 	movs := []Move{}
 	// 车的着法
 	rooks := p.Rooks.Intersection(ownPieces)
