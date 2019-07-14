@@ -29,6 +29,30 @@ type Position struct {
 	Key uint64
 }
 
+func (p *Position) addPiece(sq uint, pieceTyp int, isRed bool) {
+	switch pieceTyp {
+	case Pawn:
+		p.Pawns.Set(sq)
+	case Cannon:
+		p.Cannons.Set(sq)
+	case Rook:
+		p.Rooks.Set(sq)
+	case Knight:
+		p.Knights.Set(sq)
+	case Bishop:
+		p.Bishops.Set(sq)
+	case Advisor:
+		p.Advisors.Set(sq)
+	case King:
+		p.Kings.Set(sq)
+	}
+	if isRed {
+		p.Red.Set(sq)
+	} else {
+		p.Black.Set(sq)
+	}
+}
+
 func (p *Position) IsMaximizingPlayerTurn() bool {
 	return p.IsRedMove
 }
