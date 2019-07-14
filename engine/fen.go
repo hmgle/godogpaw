@@ -28,6 +28,7 @@ func NewPositionByFen(fen string) *Position {
 
 	tokens := strings.Split(fen, " ")
 	if len(tokens) < 5 {
+		log.Fatalf("bad fen: %s", fen)
 	}
 
 	positions := strings.Split(tokens[0], "/")
