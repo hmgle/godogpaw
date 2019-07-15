@@ -2,18 +2,19 @@ package engine
 
 import (
 	"strings"
+	"unsafe"
 
 	"github.com/willf/bitset"
 )
 
-// Move 前 0-8 位表示 from，第 8-16 位表示 to, 16-19 位表示移动的棋子，
-// 19-21 位表示表示吃掉的棋子.
+// Move 前 0-8 位表示 from，第 8-16 位表示 to, 16-20 位表示移动的棋子，
+// 20-24 位表示表示吃掉的棋子.
 type Move int32
 
 const MoveEmpty = Move(0)
 
 func toMove(from, to, movingPiece, capturedPiece int) Move {
-	return Move(from ^ (to << 8) ^ (movingPiece << 16) ^ (capturedPiece << 19))
+	return Move(from ^ (to << 8) ^ (movingPiece << 16) ^ (capturedPiece << 20))
 }
 
 func (m Move) From() int {
@@ -30,12 +31,12 @@ func (m Move) MovingPiece() int {
 }
 
 func (m Move) CapturedPiece() int {
-	return int((m >> 19) & 7)
+	return int((m >> 20) & 7)
 }
 
 func (m Move) Parse() (from, to, movingPiece, capturedPiece int) {
 	mi := int(m)
-	return mi & 0xff, (mi >> 8) & 0xff, (mi >> 16) & 7, (mi >> 19) & 7
+	return mi & 0xff, (mi >> 8) & 0xff, (mi >> 16) & 7, (mi >> 20) & 7
 }
 
 // String 返回着法字符表示.
@@ -53,7 +54,12 @@ func StrToMove(s string) Move {
 	return toMove(from, to, Empty, Empty)
 }
 
-func (p *Position) AllMoves() []Move {
+func (p *Position) AllMoves() []int32 {
+	movs := p.allMoves()
+	return *(*[]int32)(unsafe.Pointer(&movs))
+}
+
+func (p *Position) allMoves() []Move {
 	var (
 		ownPieces *bitset.BitSet
 		oppPieces *bitset.BitSet
@@ -183,23 +189,43 @@ func (p *Position) AllMoves() []Move {
 		}
 	}
 	// 将的着法
-	kingBitSet := p.Kings.Intersection(ownPieces)
-	kingSq, _ := kingBitSet.NextSet(0)
-	tos := LegalKingMvs[int(kingSq)]
-	for to, e := tos.NextSet(0); e; to, e = tos.NextSet(to + 1) {
-		if oppPieces.Test(to) { // 吃子
-			mov := toMove(int(kingSq), int(to), MakePiece(King, p.IsRedMove),
-				MakePiece(p.WhatPiece(to), !p.IsRedMove))
-			movs = append(movs, mov)
-		} else if !ownPieces.Test(to) { // 不吃子
-			mov := toMove(int(kingSq), int(to), MakePiece(King, p.IsRedMove), Empty)
-			movs = append(movs, mov)
+	kings := p.Advisors.Intersection(ownPieces)
+	for from, e := kings.NextSet(0); e; e = false {
+		tos := LegalKingMvs[int(from)]
+		for to, e := tos.NextSet(0); e; to, e = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove),
+					MakePiece(p.WhatPiece(to), !p.IsRedMove))
+				movs = append(movs, mov)
+			} else if !ownPieces.Test(to) { // 不吃子
+				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove), Empty)
+				movs = append(movs, mov)
+			}
 		}
 	}
+	/*
+		kingBitSet := p.Kings.Intersection(ownPieces)
+		kingSq, _ := kingBitSet.NextSet(0)
+		tos := LegalKingMvs[int(kingSq)]
+		for to, e := tos.NextSet(0); e; to, e = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				mov := toMove(int(kingSq), int(to), MakePiece(King, p.IsRedMove),
+					MakePiece(p.WhatPiece(to), !p.IsRedMove))
+				movs = append(movs, mov)
+			} else if !ownPieces.Test(to) { // 不吃子
+				mov := toMove(int(kingSq), int(to), MakePiece(King, p.IsRedMove), Empty)
+				movs = append(movs, mov)
+			}
+		}
+	*/
 	return movs
 }
 
-func (p *Position) MakeMove(mov Move) {
+func (p *Position) MakeMove(mov int32) {
+	p.makeMove(Move(mov))
+}
+
+func (p *Position) makeMove(mov Move) {
 	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
 	from, to := uint(fromInt), uint(toInt)
 	movingType, _ := GetPieceTypeAndSide(movingPiece)
@@ -247,7 +273,11 @@ func (p *Position) MakeMove(mov Move) {
 	p.IsRedMove = !p.IsRedMove
 }
 
-func (p *Position) UnMakeMove(mov Move) {
+func (p *Position) UnMakeMove(mov int32) {
+	p.unMakeMove(Move(mov))
+}
+
+func (p *Position) unMakeMove(mov Move) {
 	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
 	from, to := uint(fromInt), uint(toInt)
 	movingType, _ := GetPieceTypeAndSide(movingPiece)

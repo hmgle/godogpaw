@@ -45,6 +45,8 @@ func (p *Position) addPiece(sq uint, pieceTyp int, isRed bool) {
 		p.Advisors.Set(sq)
 	case King:
 		p.Kings.Set(sq)
+	default:
+		log.Fatalf("bad pieceTyp: %d, sq: %x, isRed: %v\n", pieceTyp, sq, isRed)
 	}
 	if isRed {
 		p.Red.Set(sq)
@@ -84,7 +86,7 @@ func (p *Position) WhatPiece(sq uint) int {
 	if p.Kings.Test(sq) {
 		return King
 	}
-	panic(fmt.Errorf("Wrong piece on %d", sq))
+	panic(fmt.Errorf("Wrong piece on 0x%x", sq))
 }
 
 // isKingCheck 返回将帅是否照面.

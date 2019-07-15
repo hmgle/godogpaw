@@ -31,9 +31,9 @@ func NewPositionByFen(fen string) *Position {
 		log.Fatalf("bad fen: %s", fen)
 	}
 
-	positions := strings.Split(tokens[0], "/")
+	positions := strings.Split(tokens[1], "/")
 	if len(positions) != 10 {
-		log.Fatalf("bad fen: %s", fen)
+		log.Fatalf("bad fen: %s, pos: %s, len: %d", fen, tokens[0], len(positions))
 	}
 	for i, str := range positions {
 		j := 0x02
@@ -45,8 +45,12 @@ func NewPositionByFen(fen string) *Position {
 				pieceTyp, isRed := GetPieceTypeAndSide(ParsePiece(ch))
 				sq := uint(0x20 + i*0x10 + j)
 				p.addPiece(sq, pieceTyp, isRed)
+				j++
 			}
 		}
+	}
+	if tokens[2] != "b" {
+		p.IsRedMove = true
 	}
 	// TODO 解析其余字段
 

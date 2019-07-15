@@ -17,10 +17,10 @@ func MakePiece(pieceType int, isRedSide bool) int {
 
 // ParsePiece 解析棋子.
 func ParsePiece(ch rune) int {
-	// 小写为黑，大写为红，红为真
-	isRedSide := unicode.IsUpper(ch)
+	// 小写为红，大写为黑，红为真
+	isRedSide := !unicode.IsUpper(ch)
 	spiece := string(unicode.ToLower(ch))
-	i := strings.Index("", spiece)
+	i := strings.Index("krncabp", spiece)
 	if i < 0 {
 		return Empty
 	}
@@ -31,7 +31,7 @@ func GetPieceTypeAndSide(piece int) (piectType int, isRedSide bool) {
 	if piece <= Pawn { // 红
 		return piece, true
 	}
-	return piece - 7, false
+	return piece - 8, false
 }
 
 // IsInBoard 返回 sq 这个位置是否在棋盘内.

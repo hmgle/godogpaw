@@ -1,7 +1,6 @@
 package alphabetasearch
 
-type Move interface {
-}
+type Move = int32
 
 type Board interface {
 	IsMaximizingPlayerTurn() bool
@@ -13,7 +12,7 @@ type Board interface {
 
 func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, score int) {
 	if depth == 0 {
-		return nil, board.Evaluate()
+		return 0, board.Evaluate()
 	}
 	moves := board.AllMoves()
 	if board.IsMaximizingPlayerTurn() {

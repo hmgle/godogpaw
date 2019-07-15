@@ -106,9 +106,9 @@ var (
 	LegalKingMvs = make(map[int]*bitset.BitSet)
 
 	// LegalRedPawnMvs 兵的合法着法位置
-	LegalRedPawnMvs [0xBB]*bitset.BitSet
+	LegalRedPawnMvs [0xBB + 1]*bitset.BitSet
 	// LegalBlackPawnMvs 卒的合法着法位置
-	LegalBlackPawnMvs [0xBB]*bitset.BitSet
+	LegalBlackPawnMvs [0xBB + 1]*bitset.BitSet
 )
 
 const (
