@@ -31,7 +31,7 @@ func NewPositionByFen(fen string) *Position {
 		log.Fatalf("bad fen: %s", fen)
 	}
 
-	positions := strings.Split(tokens[1], "/")
+	positions := strings.Split(tokens[0], "/")
 	if len(positions) != 10 {
 		log.Fatalf("bad fen: %s, pos: %s, len: %d", fen, tokens[0], len(positions))
 	}
@@ -49,7 +49,7 @@ func NewPositionByFen(fen string) *Position {
 			}
 		}
 	}
-	if tokens[2] != "b" {
+	if tokens[1] != "b" {
 		p.IsRedMove = true
 	}
 	// TODO 解析其余字段
