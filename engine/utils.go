@@ -9,6 +9,9 @@ import (
 
 // MakePiece 返回棋子的数字描述.
 func MakePiece(pieceType int, isRedSide bool) int {
+	if pieceType == Empty {
+		return Empty
+	}
 	if isRedSide {
 		return pieceType
 	}

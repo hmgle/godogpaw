@@ -19,6 +19,10 @@ func (e *Engine) Position(fen string) {
 	e.p = NewPositionByFen(fen)
 }
 
+func (e *Engine) Move(movDsc string) {
+	e.p.MakeMoveByDsc(movDsc)
+}
+
 func (e *Engine) Search(depth uint8) (movDesc string, score int) {
 	bestMov, score := alphabetasearch.AlphaBetaSearch(e.p, depth, -2000, 2000)
 	// mov := Move(bestMov)

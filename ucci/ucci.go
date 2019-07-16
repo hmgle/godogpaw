@@ -6,12 +6,15 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Engine interface {
 	GetInfo() (name, version, author string)
 	Prepare()
 	Position(fen string)
+	Move(movDsc string)
 	Search(depth uint8) (movDesc string, score int)
 }
 
@@ -48,8 +51,9 @@ func ponderhitCmd(p *Protocol, args []string) {
 func goCmd(p *Protocol, args []string) {
 	// TODO
 	// 反馈：bestmove <最佳着法> [ponder <后台思考的猜测着法>] [draw | resign]
-	bestMov, score := p.eng.Search(4)
-	fmt.Printf("info depth 4 score %d pv\n", score)
+	depth := uint8(5)
+	bestMov, score := p.eng.Search(depth)
+	fmt.Printf("info depth %d score %d pv\n", depth, score)
 	fmt.Printf("bestmove %s\n", bestMov)
 }
 
@@ -75,6 +79,11 @@ func positionCmd(p *Protocol, args []string) {
 		log.Fatalf("bad fen: %v", args)
 	}
 	p.eng.Position(fen)
+	if movesIndex >= 0 {
+		for _, dscMov := range args[movesIndex+1:] {
+			p.eng.Move(dscMov)
+		}
+	}
 }
 
 func findIndexString(slice []string, value string) int {
@@ -108,6 +117,9 @@ func (p *Protocol) Run() {
 		if cmdLine == "quit" {
 			return
 		}
+		logrus.WithFields(logrus.Fields{
+			"cmd": cmdLine,
+		}).Debug("")
 		cmdArgs := strings.Fields(cmdLine)
 		cmdName := cmdArgs[0]
 		cmd, ok := p.cmds[cmdName]
