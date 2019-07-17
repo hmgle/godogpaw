@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -50,8 +51,16 @@ func ponderhitCmd(p *Protocol, args []string) {
 
 func goCmd(p *Protocol, args []string) {
 	// TODO
+	// go [ponder | draw] <思考模式>
 	// 反馈：bestmove <最佳着法> [ponder <后台思考的猜测着法>] [draw | resign]
-	depth := uint8(5)
+	depth := uint8(2)
+	if len(args) > 1 && args[0] == "depth" {
+		newDepth, err := strconv.Atoi(args[1])
+		if err != nil {
+			log.Panic(err)
+		}
+		depth = uint8(newDepth)
+	}
 	bestMov, score := p.eng.Search(depth)
 	fmt.Printf("info depth %d score %d pv\n", depth, score)
 	fmt.Printf("bestmove %s\n", bestMov)
@@ -121,8 +130,7 @@ func (p *Protocol) Run() {
 			"cmd": cmdLine,
 		}).Debug("")
 		cmdArgs := strings.Fields(cmdLine)
-		cmdName := cmdArgs[0]
-		cmd, ok := p.cmds[cmdName]
+		cmd, ok := p.cmds[cmdArgs[0]]
 		if ok {
 			cmd(p, cmdArgs[1:])
 		} else {

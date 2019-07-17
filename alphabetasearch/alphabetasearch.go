@@ -1,5 +1,7 @@
 package alphabetasearch
 
+import "github.com/sirupsen/logrus"
+
 type Move = int32
 
 type Board interface {
@@ -39,10 +41,12 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 				bestMove = moves[i]
 			}
 			if alpha >= beta {
+				logrus.Debugf("alpha: %d, beta: %d, movi: %d\n", alpha, beta, i)
 				return moves[i], alpha
 			}
 		}
-		return bestMove, alpha
+		logrus.Debugf("alpha: %d, beta: %d\n", alpha, beta)
+		return bestMove, beta
 	}
 }
 

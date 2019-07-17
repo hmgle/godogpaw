@@ -190,7 +190,7 @@ func (p *Position) allMoves() []Move {
 		}
 	}
 	// 将的着法
-	kings := p.Advisors.Intersection(ownPieces)
+	kings := p.Kings.Intersection(ownPieces)
 	for from, e := kings.NextSet(0); e; e = false {
 		tos := LegalKingMvs[int(from)]
 		for to, e := tos.NextSet(0); e; to, e = tos.NextSet(to + 1) {
@@ -233,7 +233,6 @@ func (p *Position) checkLegalPos(movInt32 int32) {
 	mov := Move(movInt32)
 	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
 	from, to := uint(fromInt), uint(toInt)
-	// movingType, isRedSide := GetPieceTypeAndSide(movingPiece)
 	log.Printf("mov: 0b%025b, %d, from: 0x%x, to: 0x%x\n", mov, mov, from, to)
 	log.Printf("movingPiece: %d, capturedPiece: %d\n", movingPiece, capturedPiece)
 	log.Println("start===========================================")

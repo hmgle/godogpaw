@@ -43,7 +43,7 @@ func NewPositionByFen(fen string) *Position {
 				j += n
 			} else if unicode.IsLetter(ch) {
 				pieceTyp, isRed := GetPieceTypeAndSide(ParsePiece(ch))
-				sq := uint(0x20 + i*0x10 + j)
+				sq := uint(0xb0 - i*0x10 + j)
 				p.addPiece(sq, pieceTyp, isRed)
 				j++
 			}
