@@ -60,6 +60,14 @@ func (p *Position) AllMoves() []int32 {
 	return *(*[]int32)(unsafe.Pointer(&movs))
 }
 
+func checkAndAddMove(p *Position, movs *[]Move, mov Move) {
+	p.makeMove(mov)
+	if !p.IsCheck(!p.IsRedMove) {
+		*movs = append(*movs, mov)
+	}
+	p.unMakeMove(mov)
+}
+
 func (p *Position) allMoves() []Move {
 	var (
 		ownPieces *bitset.BitSet
@@ -87,12 +95,12 @@ func (p *Position) allMoves() []Move {
 				if oppPieces.Test(to) { // 吃子
 					mov := toMove(int(from), int(to), MakePiece(Rook, p.IsRedMove),
 						MakePiece(p.WhatPiece(to), !p.IsRedMove))
-					movs = append(movs, mov)
+					checkAndAddMove(p, &movs, mov)
 					break
 				}
 				// 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Rook, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
@@ -116,7 +124,7 @@ func (p *Position) allMoves() []Move {
 					if oppPieces.Test(to) { // 对方棋子，可吃
 						mov := toMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove),
 							MakePiece(p.WhatPiece(to), !p.IsRedMove))
-						movs = append(movs, mov)
+						checkAndAddMove(p, &movs, mov)
 						break
 					}
 					break
@@ -124,7 +132,7 @@ func (p *Position) allMoves() []Move {
 				if !afterShelf {
 					// 不吃子
 					mov := toMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove), Empty)
-					movs = append(movs, mov)
+					checkAndAddMove(p, &movs, mov)
 				}
 			}
 		}
@@ -137,10 +145,10 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Knight, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Knight, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
@@ -152,10 +160,10 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
@@ -167,10 +175,10 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Bishop, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Bishop, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
@@ -182,10 +190,10 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
@@ -197,10 +205,10 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}

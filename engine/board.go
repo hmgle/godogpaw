@@ -174,7 +174,7 @@ func init() {
 				tmpBitSet.Set(uint(i))
 			}
 			// 与 sq 同一列
-			for i := sq & 0x0f; i <= 0xff; i = i + 0x1f {
+			for i := sq & 0x0f; i <= 0xff; i = i + 0x10 {
 				tmpBitSet.Set(uint(i))
 			}
 			tmpBitSet.InPlaceIntersection(BoardMask)

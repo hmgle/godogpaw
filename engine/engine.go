@@ -2,6 +2,7 @@ package engine
 
 import (
 	"github.com/hmgle/godogpaw/alphabetasearch"
+	"github.com/sirupsen/logrus"
 )
 
 type Engine struct {
@@ -24,8 +25,20 @@ func (e *Engine) Move(movDsc string) {
 }
 
 func (e *Engine) Search(depth uint8) (movDesc string, score int) {
+	val := e.p.Evaluate()
+	logrus.WithFields(logrus.Fields{
+		"val": val,
+	}).Debugf("xxx 搜索前局面估值")
 	bestMov, score := alphabetasearch.AlphaBetaSearch(e.p, depth, -2000, 2000)
 	// mov := Move(bestMov)
 	// from, to := mov.From(), mov.To()
+	{ // XXX DEBUG
+		e.p.MakeMove(bestMov)
+		val = e.p.Evaluate()
+		logrus.WithFields(logrus.Fields{
+			"val": val,
+		}).Debugf("xxx 搜索后执行着法后的局面估值")
+		e.p.UnMakeMove(bestMov)
+	}
 	return Move(bestMov).String(), score
 }

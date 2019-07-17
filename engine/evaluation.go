@@ -255,9 +255,6 @@ var (
 	BlackPawnPstValue [256]int = [...]int{
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 10, 10, 10, 20, 20, 20, 10, 10, 10, 0, 0, 0, 0, 0,
 		0, 0, 25, 30, 40, 50, 60, 50, 40, 30, 25, 0, 0, 0, 0, 0,
 		0, 0, 24, 29, 39, 50, 50, 50, 39, 29, 24, 0, 0, 0, 0, 0,
@@ -265,6 +262,9 @@ var (
 		0, 0, 15, 20, 20, 20, 20, 20, 20, 20, 15, 0, 0, 0, 0, 0,
 		0, 0, 10, 0, 15, 0, 15, 0, 15, 0, 10, 0, 0, 0, 0, 0,
 		0, 0, 10, 0, 10, 0, 15, 0, 10, 0, 10, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -321,6 +321,32 @@ func pawnValue(sq int, isRed bool) int {
 	return BlackPawnPstValue[sq]
 }
 
+const exposedCannonVal = 55
+
+func (p *Position) isExposedCannon(cannonSq uint, isRed bool) int {
+	var beCheckKingSq uint
+	if isRed {
+		blackKing := p.Kings.Intersection(p.Black)
+		beCheckKingSq, _ = blackKing.NextSet(0)
+	} else {
+		beCheckKingSq, _ = p.Kings.NextSet(0)
+	}
+	rookAttacks := RookAttacks[int(beCheckKingSq)]
+	if !rookAttacks.Test(cannonSq) {
+		return 0
+	}
+	if File(int(cannonSq)) == File(int(beCheckKingSq)) {
+		if !p.IsAnyPieceBetweenFile(int(cannonSq), int(beCheckKingSq)) {
+			return exposedCannonVal
+		}
+	} else if Rank(int(cannonSq)) == Rank(int(beCheckKingSq)) {
+		if !p.IsAnyPieceBetweenRank(int(cannonSq), int(beCheckKingSq)) {
+			return exposedCannonVal
+		}
+	}
+	return 0
+}
+
 func (p *Position) Evaluate() int {
 	var eval = 0
 
@@ -335,55 +361,55 @@ func (p *Position) Evaluate() int {
 
 	redCannons := p.Cannons.Intersection(p.Red)
 	for sq, e := redCannons.NextSet(0); e; sq, e = redCannons.NextSet(sq + 1) {
-		eval += rookValue(int(sq), true)
+		eval += cannonValue(int(sq), true)
+		eval += p.isExposedCannon(sq, true)
 	}
 	blackCannons := p.Cannons.Intersection(p.Black)
 	for sq, e := blackCannons.NextSet(0); e; sq, e = blackCannons.NextSet(sq + 1) {
-		eval -= rookValue(int(sq), false)
+		eval -= cannonValue(int(sq), false)
+		eval -= p.isExposedCannon(sq, false)
 	}
 
 	redKnights := p.Knights.Intersection(p.Red)
 	for sq, e := redKnights.NextSet(0); e; sq, e = redKnights.NextSet(sq + 1) {
-		eval += rookValue(int(sq), true)
+		eval += knightValue(int(sq), true)
 	}
 	blackKnights := p.Knights.Intersection(p.Black)
 	for sq, e := blackKnights.NextSet(0); e; sq, e = blackKnights.NextSet(sq + 1) {
-		eval -= rookValue(int(sq), false)
+		eval -= knightValue(int(sq), false)
 	}
 
 	redPawns := p.Pawns.Intersection(p.Red)
 	for sq, e := redPawns.NextSet(0); e; sq, e = redPawns.NextSet(sq + 1) {
-		eval += rookValue(int(sq), true)
+		eval += pawnValue(int(sq), true)
 	}
 	blackPawns := p.Pawns.Intersection(p.Black)
 	for sq, e := blackPawns.NextSet(0); e; sq, e = blackPawns.NextSet(sq + 1) {
-		eval -= rookValue(int(sq), false)
+		eval -= pawnValue(int(sq), false)
 	}
 
 	redBishops := p.Bishops.Intersection(p.Red)
 	for sq, e := redBishops.NextSet(0); e; sq, e = redBishops.NextSet(sq + 1) {
-		eval += rookValue(int(sq), true)
+		eval += bishopValue(int(sq), true)
 	}
 	blackBishops := p.Bishops.Intersection(p.Black)
 	for sq, e := blackBishops.NextSet(0); e; sq, e = blackBishops.NextSet(sq + 1) {
-		eval -= rookValue(int(sq), false)
+		eval -= bishopValue(int(sq), false)
 	}
 
 	redAdvisors := p.Advisors.Intersection(p.Red)
 	for sq, e := redAdvisors.NextSet(0); e; sq, e = redAdvisors.NextSet(sq + 1) {
-		eval += rookValue(int(sq), true)
+		eval += advisorValue(int(sq), true)
 	}
 	blackAdvisors := p.Advisors.Intersection(p.Black)
 	for sq, e := blackAdvisors.NextSet(0); e; sq, e = blackAdvisors.NextSet(sq + 1) {
-		eval -= rookValue(int(sq), false)
+		eval -= advisorValue(int(sq), false)
 	}
 
-	redKing := p.Kings.Intersection(p.Red)
-	sq, _ := redKing.NextSet(0)
-	eval += rookValue(int(sq), true)
-	blackKing := p.Kings.Intersection(p.Black)
-	sq, _ = blackKing.NextSet(0)
-	eval -= rookValue(int(sq), false)
+	redKingSq, _ := p.Kings.NextSet(0)
+	eval += kingValue(int(redKingSq), true)
+	blackKingSq, _ := p.Kings.NextSet(redKingSq + 1)
+	eval -= kingValue(int(blackKingSq), false)
 
 	return eval
 }
