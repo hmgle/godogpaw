@@ -61,11 +61,11 @@ func (p *Position) AllMoves() []int32 {
 }
 
 func checkAndAddMove(p *Position, movs *[]Move, mov Move) {
-	p.makeMove(mov)
-	if !p.IsCheck(!p.IsRedMove) {
-		*movs = append(*movs, mov)
-	}
-	p.unMakeMove(mov)
+	// p.makeMove(mov)
+	// if !p.IsCheck(!p.IsRedMove) {
+	*movs = append(*movs, mov)
+	// }
+	// p.unMakeMove(mov)
 }
 
 func (p *Position) allMoves() []Move {
@@ -81,6 +81,7 @@ func (p *Position) allMoves() []Move {
 	}
 	// target := ownPieces.Complement()
 	// XXX 被将时可缩小 target 范围
+	priorMovs := []Move{}
 	movs := []Move{}
 	// 车的着法
 	rooks := p.Rooks.Intersection(ownPieces)
@@ -95,7 +96,7 @@ func (p *Position) allMoves() []Move {
 				if oppPieces.Test(to) { // 吃子
 					mov := toMove(int(from), int(to), MakePiece(Rook, p.IsRedMove),
 						MakePiece(p.WhatPiece(to), !p.IsRedMove))
-					checkAndAddMove(p, &movs, mov)
+					checkAndAddMove(p, &priorMovs, mov)
 					break
 				}
 				// 不吃子
@@ -124,7 +125,7 @@ func (p *Position) allMoves() []Move {
 					if oppPieces.Test(to) { // 对方棋子，可吃
 						mov := toMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove),
 							MakePiece(p.WhatPiece(to), !p.IsRedMove))
-						checkAndAddMove(p, &movs, mov)
+						checkAndAddMove(p, &priorMovs, mov)
 						break
 					}
 					break
@@ -140,12 +141,12 @@ func (p *Position) allMoves() []Move {
 	// 马的着法
 	knights := p.Knights.Intersection(ownPieces)
 	for from, e := knights.NextSet(0); e; from, e = knights.NextSet(from + 1) {
-		tos := p.knightAttacks(from)
+		tos := p.knightAttacksNg(from)
 		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Knight, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				checkAndAddMove(p, &movs, mov)
+				checkAndAddMove(p, &priorMovs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Knight, p.IsRedMove), Empty)
 				checkAndAddMove(p, &movs, mov)
@@ -160,7 +161,7 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				checkAndAddMove(p, &movs, mov)
+				checkAndAddMove(p, &priorMovs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove), Empty)
 				checkAndAddMove(p, &movs, mov)
@@ -175,7 +176,7 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Bishop, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				checkAndAddMove(p, &movs, mov)
+				checkAndAddMove(p, &priorMovs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Bishop, p.IsRedMove), Empty)
 				checkAndAddMove(p, &movs, mov)
@@ -190,7 +191,7 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				checkAndAddMove(p, &movs, mov)
+				checkAndAddMove(p, &priorMovs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove), Empty)
 				checkAndAddMove(p, &movs, mov)
@@ -205,7 +206,7 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				checkAndAddMove(p, &movs, mov)
+				checkAndAddMove(p, &priorMovs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove), Empty)
 				checkAndAddMove(p, &movs, mov)
@@ -227,7 +228,7 @@ func (p *Position) allMoves() []Move {
 			}
 		}
 	*/
-	return movs
+	return append(priorMovs, movs...)
 }
 
 func (p *Position) checkLegalPos(movInt32 int32) {
@@ -277,6 +278,9 @@ func (p *Position) MakeMove(mov int32) {
 }
 
 func (p *Position) makeMove(mov Move) {
+	if mov == 0 { // 认负
+		return
+	}
 	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
 	from, to := uint(fromInt), uint(toInt)
 	movingType, isRedSide := GetPieceTypeAndSide(movingPiece)

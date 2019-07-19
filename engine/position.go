@@ -24,6 +24,9 @@ type Position struct {
 
 	// PiecesSq [256]int // 存放每个位置的棋子
 
+	CntRed   uint
+	CntBlack uint
+
 	IsRedMove bool
 	// Key 当前局面哈希
 	Key uint64
@@ -210,6 +213,29 @@ func (p *Position) knightAttacks(sq uint) *bitset.BitSet {
 	return KnightAttacks[int(sq)].Difference(mask)
 }
 
+func (p *Position) knightAttacksNg(sq uint) *bitset.BitSet {
+	atts := bitset.New(256)
+	gb := p.Black.Union(p.Red)
+	if !gb.Test(uint(sq) + 1) {
+		atts.Set(uint(sq) + 0x10 + 2)
+		atts.Set(sq - 0x10 + 2)
+	}
+	if !gb.Test(sq - 1) {
+		atts.Set(sq + 0x10 - 2)
+		atts.Set(sq - 0x10 - 2)
+	}
+	if !gb.Test(sq + 0x10) {
+		atts.Set(sq + 0x20 + 1)
+		atts.Set(sq + 0x20 - 1)
+	}
+	if !gb.Test(sq - 0x10) {
+		atts.Set(sq - 0x20 + 1)
+		atts.Set(sq - 0x20 - 1)
+	}
+	atts.InPlaceIntersection(BoardMask)
+	return atts
+}
+
 // isKnightCheck 返回己方马是否在将.
 func (p *Position) isKnightCheck(isRedCheck bool) bool {
 	var (
@@ -230,7 +256,7 @@ func (p *Position) isKnightCheck(isRedCheck bool) bool {
 		return false
 	}
 	for k, e := selfKnights.NextSet(0); e; k, e = selfKnights.NextSet(k + 1) {
-		if p.knightAttacks(k).Test(kingSq) {
+		if p.knightAttacksNg(k).Test(kingSq) {
 			return true
 		}
 	}

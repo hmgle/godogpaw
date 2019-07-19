@@ -1,5 +1,7 @@
 package engine
 
+import "github.com/willf/bitset"
+
 const kingVal = 3000
 
 var (
@@ -85,7 +87,7 @@ var (
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 70, 80, 80, 80, 80, 80, 80, 80, 70, 0, 0, 0, 0, 0,
-		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
+		0, 0, 70, 95, 95, 95, 50, 95, 95, 95, 70, 0, 0, 0, 0, 0,
 		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
 		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
 		0, 0, 80, 95, 100, 95, 95, 95, 100, 95, 80, 0, 0, 0, 0, 0,
@@ -111,7 +113,7 @@ var (
 		0, 0, 80, 95, 100, 95, 95, 95, 100, 95, 80, 0, 0, 0, 0, 0,
 		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
 		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
-		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
+		0, 0, 70, 95, 95, 95, 50, 95, 95, 95, 70, 0, 0, 0, 0, 0,
 		0, 0, 70, 80, 80, 80, 80, 80, 80, 80, 70, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -321,8 +323,44 @@ func pawnValue(sq int, isRed bool) int {
 	return BlackPawnPstValue[sq]
 }
 
+// 缺士车加分
+func (p *Position) rookAwardVal(isRed bool) int {
+	// TODO
+	return 0
+}
+
+// 缺象炮加分
+func (p *Position) cannonAwardVal(isRed bool) int {
+	// TODO
+	return 0
+}
+
+// knightDexterity 马罚分.
+func (p *Position) knightDexterity(sq int, isRed bool) int {
+	var (
+		punishVal int
+		selfPs    *bitset.BitSet
+		sidePs    *bitset.BitSet
+	)
+	if isRed {
+		selfPs, sidePs = p.Red, p.Black
+	} else {
+		selfPs, sidePs = p.Black, p.Red
+	}
+	blocksDeltas := []int{0x01, -0x01, 0x10, -0x10}
+	for _, blockDelta := range blocksDeltas {
+		if selfPs.Test(uint(sq + blockDelta)) {
+			punishVal -= 2
+		} else if sidePs.Test(uint(sq + blockDelta)) {
+			punishVal -= 9
+		}
+	}
+	return punishVal
+}
+
 const exposedCannonVal = 55
 
+// isExposedCannon 是否空头.
 func (p *Position) isExposedCannon(cannonSq uint, isRed bool) int {
 	var beCheckKingSq uint
 	if isRed {
@@ -330,6 +368,10 @@ func (p *Position) isExposedCannon(cannonSq uint, isRed bool) int {
 		beCheckKingSq, _ = blackKing.NextSet(0)
 	} else {
 		beCheckKingSq, _ = p.Kings.NextSet(0)
+	}
+	// XXX debug
+	if beCheckKingSq == 0 {
+		return 0
 	}
 	rookAttacks := RookAttacks[int(beCheckKingSq)]
 	if !rookAttacks.Test(cannonSq) {
@@ -373,10 +415,12 @@ func (p *Position) Evaluate() int {
 	redKnights := p.Knights.Intersection(p.Red)
 	for sq, e := redKnights.NextSet(0); e; sq, e = redKnights.NextSet(sq + 1) {
 		eval += knightValue(int(sq), true)
+		eval += p.knightDexterity(int(sq), true)
 	}
 	blackKnights := p.Knights.Intersection(p.Black)
 	for sq, e := blackKnights.NextSet(0); e; sq, e = blackKnights.NextSet(sq + 1) {
 		eval -= knightValue(int(sq), false)
+		eval -= p.knightDexterity(int(sq), false)
 	}
 
 	redPawns := p.Pawns.Intersection(p.Red)
@@ -407,6 +451,9 @@ func (p *Position) Evaluate() int {
 	}
 
 	redKingSq, _ := p.Kings.NextSet(0)
+	if redKingSq > 0x50 { // 无帅
+		return -kingVal
+	}
 	eval += kingValue(int(redKingSq), true)
 	blackKingSq, _ := p.Kings.NextSet(redKingSq + 1)
 	eval -= kingValue(int(blackKingSq), false)

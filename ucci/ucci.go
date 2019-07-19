@@ -65,6 +65,11 @@ func goCmd(p *Protocol, args []string) {
 	depth = uint8(4)
 	bestMov, score := p.eng.Search(depth)
 	fmt.Printf("info depth %d score %d pv\n", depth, score)
+	logrus.WithFields(logrus.Fields{
+		"bestmove": bestMov,
+		"depth":    depth,
+		"score":    score,
+	}).Debugf("返回最佳着法")
 	fmt.Printf("bestmove %s\n", bestMov)
 }
 

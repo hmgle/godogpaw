@@ -55,9 +55,6 @@ func alphaBetaSearch(board Board, depth uint8, alpha, beta int) (score int) {
 		return board.Evaluate()
 	}
 	moves := board.AllMoves()
-	if len(moves) == 0 {
-		return board.Evaluate()
-	}
 	if board.IsMaximizingPlayerTurn() {
 		for _, move := range moves {
 			board.MakeMove(move)
