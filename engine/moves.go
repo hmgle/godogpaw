@@ -55,6 +55,19 @@ func StrToMove(s string) Move {
 	return toMove(from, to, Empty, Empty)
 }
 
+func (p *Position) AllMovesCheckLegal() []int32 {
+	movs := p.allMoves()
+	legalMovs := []int32{}
+	for _, mov := range movs {
+		p.makeMove(mov)
+		if !p.IsCheck(!p.IsRedMove) {
+			legalMovs = append(legalMovs, int32(mov))
+		}
+		p.unMakeMove(mov)
+	}
+	return legalMovs
+}
+
 func (p *Position) AllMoves() []int32 {
 	movs := p.allMoves()
 	return *(*[]int32)(unsafe.Pointer(&movs))

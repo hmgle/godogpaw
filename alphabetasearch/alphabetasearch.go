@@ -7,6 +7,7 @@ type Move = int32
 type Board interface {
 	IsMaximizingPlayerTurn() bool
 	AllMoves() []Move
+	AllMovesCheckLegal() []Move
 	MakeMove(Move)
 	UnMakeMove(Move)
 	Evaluate() int
@@ -16,7 +17,7 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 	if depth == 0 {
 		return 0, board.Evaluate()
 	}
-	moves := board.AllMoves()
+	moves := board.AllMovesCheckLegal()
 	if board.IsMaximizingPlayerTurn() {
 		for i, move := range moves {
 			board.MakeMove(move)
@@ -45,7 +46,6 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 				return moves[i], alpha
 			}
 		}
-		logrus.Debugf("alpha: %d, beta: %d\n", alpha, beta)
 		return bestMove, beta
 	}
 }
