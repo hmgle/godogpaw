@@ -301,48 +301,91 @@ func (p *Position) makeMove(mov Move) {
 		log.Printf("from: 0x%x, to 0x%x, movingType: %d, capturedPiece: %d, p.IsRedMove: %v\n", from, to, movingType, capturedPiece, p.IsRedMove)
 		log.Panicf("p.IsRedMove(%v) != isRedSide(%v)\n", p.IsRedMove, isRedSide)
 	}
+
+	deltaStrengthVal := 0
 	if capturedPiece != Empty {
-		captureType, isRed := GetPieceTypeAndSide(capturedPiece)
-		if p.IsRedMove == isRed {
-			log.Panicf("p.IsRedMove(%v) == isRed(%v)\n", p.IsRedMove, isRed)
-		}
+		captureType, _ := GetPieceTypeAndSide(capturedPiece)
 		switch captureType {
 		case Pawn:
 			p.Pawns.Clear(to)
+			deltaStrengthVal = -pawnVal
 		case Knight:
 			p.Knights.Clear(to)
+			deltaStrengthVal = -knightVal
 		case Rook:
 			p.Rooks.Clear(to)
+			deltaStrengthVal = -rookVal
 		case Cannon:
 			p.Cannons.Clear(to)
+			deltaStrengthVal = -cannonVal
 		case Bishop:
 			p.Bishops.Clear(to)
+			deltaStrengthVal = -bishopVal
 		case Advisor:
 			p.Advisors.Clear(to)
+			deltaStrengthVal = -advisorVal
 		case King:
 			p.Kings.Clear(to)
+			deltaStrengthVal = -kingVal
 		}
 		if p.IsRedMove {
 			p.Black.Clear(to)
+			p.blackStrengthVal += deltaStrengthVal
 		} else {
 			p.Red.Clear(to)
+			p.redStrengthVal += deltaStrengthVal
 		}
 	}
 	switch movingType {
 	case Pawn:
 		p.Pawns.Clear(from).Set(to)
+		if isRedSide {
+			p.redPstVal += RedPawnPstValue[to] - RedPawnPstValue[from]
+		} else {
+			p.blackPstVal += BlackPawnPstValue[to] - BlackPawnPstValue[from]
+		}
 	case Knight:
 		p.Knights.Clear(from).Set(to)
+		if isRedSide {
+			p.redPstVal += RedKnightPstValue[to] - RedKnightPstValue[from]
+		} else {
+			p.blackPstVal += BlackKnightPstValue[to] - BlackKnightPstValue[from]
+		}
 	case Cannon:
 		p.Cannons.Clear(from).Set(to)
+		if isRedSide {
+			p.redPstVal += RedCannonPstValue[to] - RedCannonPstValue[from]
+		} else {
+			p.blackPstVal += BlackCannonPstValue[to] - BlackCannonPstValue[from]
+		}
 	case Rook:
 		p.Rooks.Clear(from).Set(to)
+		if isRedSide {
+			p.redPstVal += RedRookPstValue[to] - RedRookPstValue[from]
+		} else {
+			p.blackPstVal += BlackRookPstValue[to] - BlackRookPstValue[from]
+		}
 	case Bishop:
 		p.Bishops.Clear(from).Set(to)
+		if isRedSide {
+			p.redPstVal += RedBishopPstValue[to] - RedBishopPstValue[from]
+		} else {
+			p.blackPstVal += BlackBishopPstValue[to] - BlackBishopPstValue[from]
+		}
 	case Advisor:
 		p.Advisors.Clear(from).Set(to)
+		if isRedSide {
+			p.redPstVal += RedAdvisorPstValue[to] - RedAdvisorPstValue[from]
+		} else {
+			p.blackPstVal += BlackAdvisorPstValue[to] - BlackAdvisorPstValue[from]
+		}
 	case King:
 		p.Kings.Clear(from).Set(to)
+		if isRedSide {
+			p.redPstVal += RedKingPstValue[to] - RedKingPstValue[from]
+		} else {
+			p.blackPstVal += BlackKingPstValue[to] - BlackKingPstValue[from]
+		}
 	}
 	if p.IsRedMove {
 		p.Red.Clear(from).Set(to)
@@ -365,6 +408,11 @@ func (p *Position) unMakeMove(mov Move) {
 	switch movingType {
 	case Pawn:
 		p.Pawns.Clear(to).Set(from)
+		if p.IsRedMove {
+			p.blackPstVal += BlackPawnPstValue[from] - BlackPawnPstValue[to]
+		} else {
+			p.redPstVal += RedPawnPstValue[from] - RedPawnPstValue[to]
+		}
 	case Knight:
 		p.Knights.Clear(to).Set(from)
 	case Cannon:
@@ -383,28 +431,38 @@ func (p *Position) unMakeMove(mov Move) {
 	} else {
 		p.Red.Clear(to).Set(from)
 	}
+	deltaStrengthVal := 0
 	if capturedPiece != Empty {
 		captureType, _ := GetPieceTypeAndSide(capturedPiece)
 		switch captureType {
 		case Pawn:
 			p.Pawns.Set(to)
+			deltaStrengthVal = pawnVal
 		case Knight:
 			p.Knights.Set(to)
+			deltaStrengthVal = knightVal
 		case Rook:
 			p.Rooks.Set(to)
+			deltaStrengthVal = rookVal
 		case Cannon:
 			p.Cannons.Set(to)
+			deltaStrengthVal = cannonVal
 		case Bishop:
 			p.Bishops.Set(to)
+			deltaStrengthVal = bishopVal
 		case Advisor:
 			p.Advisors.Set(to)
+			deltaStrengthVal = advisorVal
 		case King:
 			p.Kings.Set(to)
+			deltaStrengthVal = kingVal
 		}
 		if p.IsRedMove {
 			p.Red.Set(to)
+			p.redStrengthVal += deltaStrengthVal
 		} else {
 			p.Black.Set(to)
+			p.blackStrengthVal += deltaStrengthVal
 		}
 	}
 	p.IsRedMove = !p.IsRedMove

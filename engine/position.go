@@ -20,7 +20,10 @@ type Position struct {
 	Red   *bitset.BitSet
 	Black *bitset.BitSet
 
-	Checkers *bitset.BitSet
+	redStrengthVal   int // 红方子力价值
+	blackStrengthVal int // 黑方子力价值
+	redPstVal        int // 红方位置价值
+	blackPstVal      int // 黑方位置价值
 
 	// PiecesSq [256]int // 存放每个位置的棋子
 
