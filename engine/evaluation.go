@@ -1,5 +1,7 @@
 package engine
 
+import "github.com/willf/bitset"
+
 const kingVal = 3000
 
 var (
@@ -7,16 +9,16 @@ var (
 	RedRookPstValue [256]int = [...]int{
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 160, 170, 200, 210, 200, 210, 200, 170, 160, 0, 0, 0, 0, 0,
-		0, 0, 180, 200, 200, 210, 200, 210, 200, 200, 180, 0, 0, 0, 0, 0,
-		0, 0, 180, 200, 200, 210, 200, 210, 200, 200, 180, 0, 0, 0, 0, 0,
-		0, 0, 190, 210, 210, 220, 220, 220, 210, 210, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 210, 220, 210, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 210, 220, 210, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 210, 220, 210, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 210, 220, 210, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 230, 240, 230, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 210, 240, 210, 210, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 160, 170, 190, 210, 200, 210, 190, 170, 160, 0, 0, 0, 0, 0,
+		0, 0, 180, 190, 190, 210, 200, 210, 190, 190, 180, 0, 0, 0, 0, 0,
+		0, 0, 180, 190, 190, 210, 200, 210, 190, 190, 180, 0, 0, 0, 0, 0,
+		0, 0, 180, 190, 190, 200, 200, 200, 190, 190, 180, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 210, 210, 210, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 210, 210, 210, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 210, 210, 210, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 210, 210, 210, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 215, 220, 215, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 210, 210, 210, 200, 200, 190, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -26,16 +28,16 @@ var (
 	BlackRookPstValue [256]int = [...]int{
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 210, 240, 210, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 230, 240, 230, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 210, 220, 210, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 210, 220, 210, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 210, 220, 210, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 200, 210, 210, 220, 210, 210, 200, 190, 0, 0, 0, 0, 0,
-		0, 0, 190, 210, 210, 220, 220, 220, 210, 210, 190, 0, 0, 0, 0, 0,
-		0, 0, 180, 200, 200, 210, 200, 210, 200, 200, 180, 0, 0, 0, 0, 0,
-		0, 0, 180, 200, 200, 210, 200, 210, 200, 200, 180, 0, 0, 0, 0, 0,
-		0, 0, 160, 170, 200, 210, 200, 210, 200, 170, 160, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 210, 210, 210, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 220, 220, 220, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 210, 210, 210, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 210, 210, 210, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 210, 210, 210, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 190, 200, 200, 210, 210, 210, 200, 200, 190, 0, 0, 0, 0, 0,
+		0, 0, 180, 190, 190, 200, 200, 200, 190, 190, 180, 0, 0, 0, 0, 0,
+		0, 0, 180, 190, 190, 210, 200, 210, 190, 190, 180, 0, 0, 0, 0, 0,
+		0, 0, 180, 190, 190, 210, 200, 210, 190, 190, 180, 0, 0, 0, 0, 0,
+		0, 0, 160, 170, 190, 210, 200, 210, 190, 170, 160, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -85,7 +87,7 @@ var (
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 70, 80, 80, 80, 80, 80, 80, 80, 70, 0, 0, 0, 0, 0,
-		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
+		0, 0, 70, 95, 80, 95, 50, 95, 80, 95, 70, 0, 0, 0, 0, 0,
 		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
 		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
 		0, 0, 80, 95, 100, 95, 95, 95, 100, 95, 80, 0, 0, 0, 0, 0,
@@ -111,7 +113,7 @@ var (
 		0, 0, 80, 95, 100, 95, 95, 95, 100, 95, 80, 0, 0, 0, 0, 0,
 		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
 		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
-		0, 0, 80, 95, 95, 95, 95, 95, 95, 95, 80, 0, 0, 0, 0, 0,
+		0, 0, 70, 95, 80, 95, 50, 95, 80, 95, 70, 0, 0, 0, 0, 0,
 		0, 0, 70, 80, 80, 80, 80, 80, 80, 80, 70, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -239,8 +241,8 @@ var (
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 10, 0, 10, 0, 15, 0, 10, 0, 10, 0, 0, 0, 0, 0,
-		0, 0, 10, 0, 15, 0, 15, 0, 15, 0, 10, 0, 0, 0, 0, 0,
+		0, 0, 10, 0, 10, 0, 17, 0, 10, 0, 10, 0, 0, 0, 0, 0,
+		0, 0, 12, 0, 17, 0, 17, 0, 17, 0, 12, 0, 0, 0, 0, 0,
 		0, 0, 15, 20, 20, 20, 20, 20, 20, 20, 15, 0, 0, 0, 0, 0,
 		0, 0, 20, 25, 25, 30, 30, 30, 25, 25, 20, 0, 0, 0, 0, 0,
 		0, 0, 24, 29, 39, 50, 50, 50, 39, 29, 24, 0, 0, 0, 0, 0,
@@ -255,16 +257,16 @@ var (
 	BlackPawnPstValue [256]int = [...]int{
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 10, 10, 10, 20, 20, 20, 10, 10, 10, 0, 0, 0, 0, 0,
 		0, 0, 25, 30, 40, 50, 60, 50, 40, 30, 25, 0, 0, 0, 0, 0,
 		0, 0, 24, 29, 39, 50, 50, 50, 39, 29, 24, 0, 0, 0, 0, 0,
 		0, 0, 20, 25, 25, 30, 30, 30, 25, 25, 20, 0, 0, 0, 0, 0,
 		0, 0, 15, 20, 20, 20, 20, 20, 20, 20, 15, 0, 0, 0, 0, 0,
-		0, 0, 10, 0, 15, 0, 15, 0, 15, 0, 10, 0, 0, 0, 0, 0,
-		0, 0, 10, 0, 10, 0, 15, 0, 10, 0, 10, 0, 0, 0, 0, 0,
+		0, 0, 12, 0, 17, 0, 17, 0, 17, 0, 12, 0, 0, 0, 0, 0,
+		0, 0, 10, 0, 10, 0, 17, 0, 10, 0, 10, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -321,6 +323,72 @@ func pawnValue(sq int, isRed bool) int {
 	return BlackPawnPstValue[sq]
 }
 
+// 缺士车加分
+func (p *Position) rookAwardVal(isRed bool) int {
+	// TODO
+	return 0
+}
+
+// 缺象炮加分
+func (p *Position) cannonAwardVal(isRed bool) int {
+	// TODO
+	return 0
+}
+
+// knightDexterity 马罚分.
+func (p *Position) knightDexterity(sq int, isRed bool) int {
+	var (
+		punishVal int
+		selfPs    *bitset.BitSet
+		sidePs    *bitset.BitSet
+	)
+	if isRed {
+		selfPs, sidePs = p.Red, p.Black
+	} else {
+		selfPs, sidePs = p.Black, p.Red
+	}
+	blocksDeltas := []int{0x01, -0x01, 0x10, -0x10}
+	for _, blockDelta := range blocksDeltas {
+		if selfPs.Test(uint(sq + blockDelta)) {
+			punishVal -= 5
+		} else if sidePs.Test(uint(sq + blockDelta)) {
+			punishVal -= 9
+		}
+	}
+	return punishVal
+}
+
+const exposedCannonVal = 55
+
+// isExposedCannon 是否空头.
+func (p *Position) isExposedCannon(cannonSq uint, isRed bool) int {
+	var beCheckKingSq uint
+	if isRed {
+		blackKing := p.Kings.Intersection(p.Black)
+		beCheckKingSq, _ = blackKing.NextSet(0)
+	} else {
+		beCheckKingSq, _ = p.Kings.NextSet(0)
+	}
+	// XXX debug
+	if beCheckKingSq == 0 {
+		return 0
+	}
+	rookAttacks := RookAttacks[int(beCheckKingSq)]
+	if !rookAttacks.Test(cannonSq) {
+		return 0
+	}
+	if File(int(cannonSq)) == File(int(beCheckKingSq)) {
+		if !p.IsAnyPieceBetweenFile(int(cannonSq), int(beCheckKingSq)) {
+			return exposedCannonVal
+		}
+	} else if Rank(int(cannonSq)) == Rank(int(beCheckKingSq)) {
+		if !p.IsAnyPieceBetweenRank(int(cannonSq), int(beCheckKingSq)) {
+			return exposedCannonVal
+		}
+	}
+	return 0
+}
+
 func (p *Position) Evaluate() int {
 	var eval = 0
 
@@ -335,55 +403,60 @@ func (p *Position) Evaluate() int {
 
 	redCannons := p.Cannons.Intersection(p.Red)
 	for sq, e := redCannons.NextSet(0); e; sq, e = redCannons.NextSet(sq + 1) {
-		eval += rookValue(int(sq), true)
+		eval += cannonValue(int(sq), true)
+		eval += p.isExposedCannon(sq, true)
 	}
 	blackCannons := p.Cannons.Intersection(p.Black)
 	for sq, e := blackCannons.NextSet(0); e; sq, e = blackCannons.NextSet(sq + 1) {
-		eval -= rookValue(int(sq), false)
+		eval -= cannonValue(int(sq), false)
+		eval -= p.isExposedCannon(sq, false)
 	}
 
 	redKnights := p.Knights.Intersection(p.Red)
 	for sq, e := redKnights.NextSet(0); e; sq, e = redKnights.NextSet(sq + 1) {
-		eval += rookValue(int(sq), true)
+		eval += knightValue(int(sq), true)
+		eval += p.knightDexterity(int(sq), true)
 	}
 	blackKnights := p.Knights.Intersection(p.Black)
 	for sq, e := blackKnights.NextSet(0); e; sq, e = blackKnights.NextSet(sq + 1) {
-		eval -= rookValue(int(sq), false)
+		eval -= knightValue(int(sq), false)
+		eval -= p.knightDexterity(int(sq), false)
 	}
 
 	redPawns := p.Pawns.Intersection(p.Red)
 	for sq, e := redPawns.NextSet(0); e; sq, e = redPawns.NextSet(sq + 1) {
-		eval += rookValue(int(sq), true)
+		eval += pawnValue(int(sq), true)
 	}
 	blackPawns := p.Pawns.Intersection(p.Black)
 	for sq, e := blackPawns.NextSet(0); e; sq, e = blackPawns.NextSet(sq + 1) {
-		eval -= rookValue(int(sq), false)
+		eval -= pawnValue(int(sq), false)
 	}
 
 	redBishops := p.Bishops.Intersection(p.Red)
 	for sq, e := redBishops.NextSet(0); e; sq, e = redBishops.NextSet(sq + 1) {
-		eval += rookValue(int(sq), true)
+		eval += bishopValue(int(sq), true)
 	}
 	blackBishops := p.Bishops.Intersection(p.Black)
 	for sq, e := blackBishops.NextSet(0); e; sq, e = blackBishops.NextSet(sq + 1) {
-		eval -= rookValue(int(sq), false)
+		eval -= bishopValue(int(sq), false)
 	}
 
 	redAdvisors := p.Advisors.Intersection(p.Red)
 	for sq, e := redAdvisors.NextSet(0); e; sq, e = redAdvisors.NextSet(sq + 1) {
-		eval += rookValue(int(sq), true)
+		eval += advisorValue(int(sq), true)
 	}
 	blackAdvisors := p.Advisors.Intersection(p.Black)
 	for sq, e := blackAdvisors.NextSet(0); e; sq, e = blackAdvisors.NextSet(sq + 1) {
-		eval -= rookValue(int(sq), false)
+		eval -= advisorValue(int(sq), false)
 	}
 
-	redKing := p.Kings.Intersection(p.Red)
-	sq, _ := redKing.NextSet(0)
-	eval += rookValue(int(sq), true)
-	blackKing := p.Kings.Intersection(p.Black)
-	sq, _ = blackKing.NextSet(0)
-	eval -= rookValue(int(sq), false)
+	redKingSq, _ := p.Kings.NextSet(0)
+	if redKingSq > 0x50 { // 无帅
+		return -kingVal
+	}
+	eval += kingValue(int(redKingSq), true)
+	blackKingSq, _ := p.Kings.NextSet(redKingSq + 1)
+	eval -= kingValue(int(blackKingSq), false)
 
 	return eval
 }

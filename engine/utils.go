@@ -9,6 +9,9 @@ import (
 
 // MakePiece 返回棋子的数字描述.
 func MakePiece(pieceType int, isRedSide bool) int {
+	if pieceType == Empty {
+		return Empty
+	}
 	if isRedSide {
 		return pieceType
 	}
@@ -17,8 +20,8 @@ func MakePiece(pieceType int, isRedSide bool) int {
 
 // ParsePiece 解析棋子.
 func ParsePiece(ch rune) int {
-	// 小写为红，大写为黑，红为真
-	isRedSide := !unicode.IsUpper(ch)
+	// 大写为红，小写为黑，红为真
+	isRedSide := unicode.IsUpper(ch)
 	spiece := string(unicode.ToLower(ch))
 	i := strings.Index("krncabp", spiece)
 	if i < 0 {

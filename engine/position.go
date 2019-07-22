@@ -24,6 +24,9 @@ type Position struct {
 
 	// PiecesSq [256]int // 存放每个位置的棋子
 
+	CntRed   uint
+	CntBlack uint
+
 	IsRedMove bool
 	// Key 当前局面哈希
 	Key uint64
@@ -94,11 +97,11 @@ func (p *Position) isKingCheck() bool {
 	// 是否同一列
 	redKing, found := p.Kings.NextSet(0)
 	if !found {
-		log.Fatalf("not found red king")
+		log.Panic("not found red king")
 	}
 	blackKing, found := p.Kings.NextSet(redKing + 1)
 	if !found {
-		log.Fatalf("not found black king")
+		log.Panicf("not found black king, redKing: 0x%x", redKing)
 	}
 	if File(int(redKing)) != File(int(blackKing)) {
 		return false
@@ -134,7 +137,7 @@ func (p *Position) IsOnePieceBetweenFile(sq1, sq2 int) bool {
 func (p *Position) IsOnePieceBetweenRank(sq1, sq2 int) bool {
 	rank := Rank(sq1)
 	if Rank(sq2) != rank {
-		log.Fatalf("sq1(%d) and sq2(%d) is not in same rank", sq1, sq2)
+		log.Fatalf("sq1(0x%x) and sq2(0x%x) is not in same rank", sq1, sq2)
 	}
 
 	min, max := sq1, sq2
@@ -210,117 +213,136 @@ func (p *Position) knightAttacks(sq uint) *bitset.BitSet {
 	return KnightAttacks[int(sq)].Difference(mask)
 }
 
-// isKnightCheck 返回是否马将.
-func (p *Position) isKnightCheck() bool {
+func (p *Position) knightAttacksNg(sq uint) *bitset.BitSet {
+	atts := bitset.New(256)
+	gb := p.Black.Union(p.Red)
+	if !gb.Test(uint(sq) + 1) {
+		atts.Set(uint(sq) + 0x10 + 2)
+		atts.Set(sq - 0x10 + 2)
+	}
+	if !gb.Test(sq - 1) {
+		atts.Set(sq + 0x10 - 2)
+		atts.Set(sq - 0x10 - 2)
+	}
+	if !gb.Test(sq + 0x10) {
+		atts.Set(sq + 0x20 + 1)
+		atts.Set(sq + 0x20 - 1)
+	}
+	if !gb.Test(sq - 0x10) {
+		atts.Set(sq - 0x20 + 1)
+		atts.Set(sq - 0x20 - 1)
+	}
+	atts.InPlaceIntersection(BoardMask)
+	return atts
+}
+
+// isKnightCheck 返回己方马是否在将.
+func (p *Position) isKnightCheck(isRedCheck bool) bool {
 	var (
 		kingSq uint
 		selfPs *bitset.BitSet
 		sidePs *bitset.BitSet
 	)
-	if p.IsRedMove {
-		selfPs = p.Red
-		sidePs = p.Black
+	if isRedCheck {
+		selfPs, sidePs = p.Black, p.Red
 	} else {
-		selfPs = p.Black
-		sidePs = p.Red
+		selfPs, sidePs = p.Red, p.Black
 	}
-	kingSq, _ = p.Kings.Intersection(selfPs).NextSet(0)
+	kingSq, _ = p.Kings.Intersection(sidePs).NextSet(0)
 	knightAttacks := KnightAttacks[int(kingSq)]
-	sideKnights := p.Knights.Intersection(sidePs)
-	// 先判断将附近的八个马位是否有对方的马
-	if !knightAttacks.Intersection(sideKnights).Any() {
+	selfKnights := p.Knights.Intersection(selfPs)
+	// 先判断将附近的八个马位是否有己方的马
+	if !knightAttacks.Intersection(selfKnights).Any() {
 		return false
 	}
-	for k, e := sideKnights.NextSet(0); e; k, e = sideKnights.NextSet(k + 1) {
-		if p.knightAttacks(k).Test(kingSq) {
+	for k, e := selfKnights.NextSet(0); e; k, e = selfKnights.NextSet(k + 1) {
+		if p.knightAttacksNg(k).Test(kingSq) {
 			return true
 		}
 	}
 	return false
 }
 
-// isPawnCheck 返回是否被兵将.
-func (p *Position) isPawnCheck() bool {
+// isPawnCheck 返回己方兵是否在将.
+func (p *Position) isPawnCheck(isRedCheck bool) bool {
 	var (
 		kingSq uint
 		selfPs *bitset.BitSet
 		sidePs *bitset.BitSet
 	)
-	if p.IsRedMove {
-		selfPs = p.Red
-		sidePs = p.Black
+	if isRedCheck {
+		selfPs, sidePs = p.Black, p.Red
 	} else {
-		selfPs = p.Black
-		sidePs = p.Red
+		selfPs, sidePs = p.Red, p.Black
 	}
-	kingSq, _ = p.Kings.Intersection(selfPs).NextSet(0)
+	kingSq, _ = p.Kings.Intersection(sidePs).NextSet(0)
 	pawnAttacks := AttackKingPawnSqs[int(kingSq)]
-	sidePawns := p.Pawns.Intersection(sidePs)
-	return pawnAttacks.Intersection(sidePawns).Any()
+	selfPawns := p.Pawns.Intersection(selfPs)
+	return pawnAttacks.Intersection(selfPawns).Any()
 }
 
-// isCannonCheck 返回是否炮将.
-func (p *Position) isCannonCheck() bool {
+// isCannonCheck 返回己方炮是否在将.
+func (p *Position) isCannonCheck(isRedCheck bool) bool {
 	var (
 		kingSq uint
 		selfPs *bitset.BitSet
 		sidePs *bitset.BitSet
 	)
-	if p.IsRedMove {
-		selfPs = p.Red
-		sidePs = p.Black
+	if isRedCheck {
+		selfPs, sidePs = p.Black, p.Red
 	} else {
-		selfPs = p.Black
-		sidePs = p.Red
+		selfPs, sidePs = p.Red, p.Black
 	}
-	kingSq, _ = p.Kings.Intersection(selfPs).NextSet(0)
+	kingSq, _ = p.Kings.Intersection(sidePs).NextSet(0)
 	rookAttacks := RookAttacks[int(kingSq)]
-	sideCannons := p.Cannons.Intersection(sidePs)
-	// 先判断是否己方帅同一行及同一列有没有对方炮
-	if !rookAttacks.Intersection(sideCannons).Any() {
+	selfCannons := p.Cannons.Intersection(selfPs)
+	// 先判断是否对方帅同一行及同一列有没有己方炮
+	if !rookAttacks.Intersection(selfCannons).Any() {
 		return false
 	}
-	for c, e := sideCannons.NextSet(0); e; c, e = sideCannons.NextSet(c + 1) {
+
+	for c, e := selfCannons.NextSet(0); e; c, e = selfCannons.NextSet(c + 1) {
 		if File(int(c)) == File(int(kingSq)) { // 炮将同一列
 			if p.IsOnePieceBetweenFile(int(c), int(kingSq)) { // 中间一子隔挡
 				return true
 			}
-		} else { // 同一行
+		} else if Rank(int(c)) == Rank(int(kingSq)) { // 同一行
 			if p.IsOnePieceBetweenRank(int(c), int(kingSq)) {
 				return true
 			}
 		}
 	}
+
 	return false
 }
 
-// isRookCheck 返回是否车将.
-func (p *Position) isRookCheck() bool {
+// isRookCheck 返回车是否在将.
+// isRedCheck = true: 返回红帅是否被黑车将.
+// isRedCheck = false: 返回黑将是否被红车将.
+func (p *Position) isRookCheck(isRedCheck bool) bool {
 	var (
 		kingSq uint
 		selfPs *bitset.BitSet
 		sidePs *bitset.BitSet
 	)
-	if p.IsRedMove {
-		selfPs = p.Red
-		sidePs = p.Black
+	if isRedCheck {
+		selfPs, sidePs = p.Black, p.Red
 	} else {
-		selfPs = p.Black
-		sidePs = p.Red
+		selfPs, sidePs = p.Red, p.Black
 	}
-	kingSq, _ = p.Kings.Intersection(selfPs).NextSet(0)
+	kingSq, _ = p.Kings.Intersection(sidePs).NextSet(0)
 	rookAttacks := RookAttacks[int(kingSq)]
-	sideRooks := p.Rooks.Intersection(sidePs)
-	// 先判断是否己方帅同一行及同一列有没有对方车
-	if !rookAttacks.Intersection(sideRooks).Any() {
+	selfRooks := p.Rooks.Intersection(selfPs)
+	// 先判断是否对方帅同一行及同一列有没有己方车
+	if !rookAttacks.Intersection(selfRooks).Any() {
 		return false
 	}
-	for r, e := sideRooks.NextSet(0); e; r, e = sideRooks.NextSet(r + 1) {
+	for r, e := selfRooks.NextSet(0); e; r, e = selfRooks.NextSet(r + 1) {
 		if File(int(r)) == File(int(kingSq)) { // 车将同一列
 			if !p.IsAnyPieceBetweenFile(int(r), int(kingSq)) { // 中间无子隔挡
 				return true
 			}
-		} else { // 同一行
+		} else if Rank(int(r)) == Rank(int(kingSq)) { // 同一行
 			if !p.IsAnyPieceBetweenRank(int(r), int(kingSq)) {
 				return true
 			}
@@ -329,24 +351,25 @@ func (p *Position) isRookCheck() bool {
 	return false
 }
 
-// IsCheck 返回是否被将.
-func (p *Position) IsCheck() bool {
+// IsCheck 返回是否将.
+// isRedCheck = true: 返回红帅是否被将.
+// isRedCheck = false: 返回黑将是否被将.
+func (p *Position) IsCheck(isRedCheck bool) bool {
 	if p.isKingCheck() {
 		return true
 	}
-
-	if p.isRookCheck() {
+	if p.isRookCheck(isRedCheck) {
 		return true
 	}
 
-	if p.isCannonCheck() {
+	if p.isCannonCheck(isRedCheck) {
 		return true
 	}
-	if p.isKnightCheck() {
+	if p.isKnightCheck(isRedCheck) {
 		return true
 	}
 
-	if p.isPawnCheck() {
+	if p.isPawnCheck(isRedCheck) {
 		return true
 	}
 	return false
@@ -361,20 +384,59 @@ func (p *Position) AllPieces() *bitset.BitSet {
 func (p *Position) LegalBishopMvs(sq uint) *bitset.BitSet {
 	allPieces := p.AllPieces()
 	mvsBs := bitset.New(256)
-	if sq < 0x50 { // 相不能过河
+	if sq < 0x2f { // 底相
 		if !allPieces.Test(sq + 0x10 + 0x01) {
 			mvsBs.Set(sq + 0x20 + 0x02)
 		}
 		if !allPieces.Test(sq + 0x10 - 0x01) {
 			mvsBs.Set(sq + 0x20 - 0x02)
 		}
-	}
-	if sq > 0x80 { // 象不能过河
-		if !allPieces.Test(sq - 0x10 - 0x01) {
-			mvsBs.Set(sq - 0x20 - 0x02)
+	} else if sq < 0x50 { // 中相
+		if !allPieces.Test(sq + 0x10 + 0x01) {
+			mvsBs.Set(sq + 0x20 + 0x02)
+		}
+		if !allPieces.Test(sq + 0x10 - 0x01) {
+			mvsBs.Set(sq + 0x20 - 0x02)
 		}
 		if !allPieces.Test(sq - 0x10 + 0x01) {
 			mvsBs.Set(sq - 0x20 + 0x02)
+		}
+		if !allPieces.Test(sq - 0x10 - 0x01) {
+			mvsBs.Set(sq - 0x20 - 0x02)
+		}
+	} else if sq < 0x6f { // 高相不能过河
+		if !allPieces.Test(sq - 0x10 + 0x01) {
+			mvsBs.Set(sq - 0x20 + 0x02)
+		}
+		if !allPieces.Test(sq - 0x10 - 0x01) {
+			mvsBs.Set(sq - 0x20 - 0x02)
+		}
+	} else if sq < 0x80 { // 高象不能过河
+		if !allPieces.Test(sq + 0x10 + 0x01) {
+			mvsBs.Set(sq + 0x20 + 0x02)
+		}
+		if !allPieces.Test(sq + 0x10 - 0x01) {
+			mvsBs.Set(sq + 0x20 - 0x02)
+		}
+	} else if sq < 0xaf { // 中象
+		if !allPieces.Test(sq + 0x10 + 0x01) {
+			mvsBs.Set(sq + 0x20 + 0x02)
+		}
+		if !allPieces.Test(sq + 0x10 - 0x01) {
+			mvsBs.Set(sq + 0x20 - 0x02)
+		}
+		if !allPieces.Test(sq - 0x10 + 0x01) {
+			mvsBs.Set(sq - 0x20 + 0x02)
+		}
+		if !allPieces.Test(sq - 0x10 - 0x01) {
+			mvsBs.Set(sq - 0x20 - 0x02)
+		}
+	} else { // 底象
+		if !allPieces.Test(sq - 0x10 + 0x01) {
+			mvsBs.Set(sq - 0x20 + 0x02)
+		}
+		if !allPieces.Test(sq - 0x10 - 0x01) {
+			mvsBs.Set(sq - 0x20 - 0x02)
 		}
 	}
 	mvsBs.InPlaceIntersection(BoardMask)

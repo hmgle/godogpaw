@@ -5,13 +5,17 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Engine interface {
 	GetInfo() (name, version, author string)
 	Prepare()
 	Position(fen string)
+	Move(movDsc string)
 	Search(depth uint8) (movDesc string, score int)
 }
 
@@ -47,9 +51,25 @@ func ponderhitCmd(p *Protocol, args []string) {
 
 func goCmd(p *Protocol, args []string) {
 	// TODO
+	// go [ponder | draw] <思考模式>
 	// 反馈：bestmove <最佳着法> [ponder <后台思考的猜测着法>] [draw | resign]
-	bestMov, score := p.eng.Search(4)
-	fmt.Printf("info depth 4 score %d pv\n", score)
+	depth := uint8(4)
+	if len(args) > 1 && args[0] == "depth" {
+		newDepth, err := strconv.Atoi(args[1])
+		if err != nil {
+			log.Panic(err)
+		}
+		depth = uint8(newDepth)
+	}
+	// XXX DEBUG
+	depth = uint8(5)
+	bestMov, score := p.eng.Search(depth)
+	fmt.Printf("info depth %d score %d pv\n", depth, score)
+	logrus.WithFields(logrus.Fields{
+		"bestmove": bestMov,
+		"depth":    depth,
+		"score":    score,
+	}).Debugf("返回最佳着法")
 	fmt.Printf("bestmove %s\n", bestMov)
 }
 
@@ -57,7 +77,7 @@ func banmovesCmd(p *Protocol, args []string) {
 	// TODO
 }
 
-const initFen = "fen rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
+const initFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
 
 // 格式：position {fen <FEN串> | startpos} [moves <后续着法列表>]
 func positionCmd(p *Protocol, args []string) {
@@ -75,6 +95,11 @@ func positionCmd(p *Protocol, args []string) {
 		log.Fatalf("bad fen: %v", args)
 	}
 	p.eng.Position(fen)
+	if movesIndex >= 0 {
+		for _, dscMov := range args[movesIndex+1:] {
+			p.eng.Move(dscMov)
+		}
+	}
 }
 
 func findIndexString(slice []string, value string) int {
@@ -108,9 +133,11 @@ func (p *Protocol) Run() {
 		if cmdLine == "quit" {
 			return
 		}
+		logrus.WithFields(logrus.Fields{
+			"cmd": cmdLine,
+		}).Debug("")
 		cmdArgs := strings.Fields(cmdLine)
-		cmdName := cmdArgs[0]
-		cmd, ok := p.cmds[cmdName]
+		cmd, ok := p.cmds[cmdArgs[0]]
 		if ok {
 			cmd(p, cmdArgs[1:])
 		} else {

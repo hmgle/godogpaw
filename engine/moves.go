@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"log"
 	"strings"
 	"unsafe"
 
@@ -27,16 +28,16 @@ func (m Move) To() int {
 
 // MovingPiece 返回移动的棋子.
 func (m Move) MovingPiece() int {
-	return int((m >> 16) & 7)
+	return int((m >> 16) & 0xf)
 }
 
 func (m Move) CapturedPiece() int {
-	return int((m >> 20) & 7)
+	return int((m >> 20) & 0xf)
 }
 
 func (m Move) Parse() (from, to, movingPiece, capturedPiece int) {
 	mi := int(m)
-	return mi & 0xff, (mi >> 8) & 0xff, (mi >> 16) & 7, (mi >> 20) & 7
+	return mi & 0xff, (mi >> 8) & 0xff, (mi >> 16) & 0xf, (mi >> 20) & 0xf
 }
 
 // String 返回着法字符表示.
@@ -54,9 +55,30 @@ func StrToMove(s string) Move {
 	return toMove(from, to, Empty, Empty)
 }
 
+func (p *Position) AllMovesCheckLegal() []int32 {
+	movs := p.allMoves()
+	legalMovs := []int32{}
+	for _, mov := range movs {
+		p.makeMove(mov)
+		if !p.IsCheck(!p.IsRedMove) {
+			legalMovs = append(legalMovs, int32(mov))
+		}
+		p.unMakeMove(mov)
+	}
+	return legalMovs
+}
+
 func (p *Position) AllMoves() []int32 {
 	movs := p.allMoves()
 	return *(*[]int32)(unsafe.Pointer(&movs))
+}
+
+func checkAndAddMove(p *Position, movs *[]Move, mov Move) {
+	// p.makeMove(mov)
+	// if !p.IsCheck(!p.IsRedMove) {
+	*movs = append(*movs, mov)
+	// }
+	// p.unMakeMove(mov)
 }
 
 func (p *Position) allMoves() []Move {
@@ -72,6 +94,7 @@ func (p *Position) allMoves() []Move {
 	}
 	// target := ownPieces.Complement()
 	// XXX 被将时可缩小 target 范围
+	priorMovs := []Move{}
 	movs := []Move{}
 	// 车的着法
 	rooks := p.Rooks.Intersection(ownPieces)
@@ -86,12 +109,12 @@ func (p *Position) allMoves() []Move {
 				if oppPieces.Test(to) { // 吃子
 					mov := toMove(int(from), int(to), MakePiece(Rook, p.IsRedMove),
 						MakePiece(p.WhatPiece(to), !p.IsRedMove))
-					movs = append(movs, mov)
+					checkAndAddMove(p, &priorMovs, mov)
 					break
 				}
 				// 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Rook, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
@@ -115,7 +138,7 @@ func (p *Position) allMoves() []Move {
 					if oppPieces.Test(to) { // 对方棋子，可吃
 						mov := toMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove),
 							MakePiece(p.WhatPiece(to), !p.IsRedMove))
-						movs = append(movs, mov)
+						checkAndAddMove(p, &priorMovs, mov)
 						break
 					}
 					break
@@ -123,7 +146,7 @@ func (p *Position) allMoves() []Move {
 				if !afterShelf {
 					// 不吃子
 					mov := toMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove), Empty)
-					movs = append(movs, mov)
+					checkAndAddMove(p, &movs, mov)
 				}
 			}
 		}
@@ -131,15 +154,15 @@ func (p *Position) allMoves() []Move {
 	// 马的着法
 	knights := p.Knights.Intersection(ownPieces)
 	for from, e := knights.NextSet(0); e; from, e = knights.NextSet(from + 1) {
-		tos := p.knightAttacks(from)
+		tos := p.knightAttacksNg(from)
 		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Knight, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				movs = append(movs, mov)
+				checkAndAddMove(p, &priorMovs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Knight, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
@@ -151,10 +174,10 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				movs = append(movs, mov)
+				checkAndAddMove(p, &priorMovs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
@@ -166,10 +189,10 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Bishop, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				movs = append(movs, mov)
+				checkAndAddMove(p, &priorMovs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Bishop, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
@@ -181,25 +204,25 @@ func (p *Position) allMoves() []Move {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				movs = append(movs, mov)
+				checkAndAddMove(p, &priorMovs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
 	// 将的着法
-	kings := p.Advisors.Intersection(ownPieces)
+	kings := p.Kings.Intersection(ownPieces)
 	for from, e := kings.NextSet(0); e; e = false {
 		tos := LegalKingMvs[int(from)]
 		for to, e := tos.NextSet(0); e; to, e = tos.NextSet(to + 1) {
 			if oppPieces.Test(to) { // 吃子
 				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove),
 					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				movs = append(movs, mov)
+				checkAndAddMove(p, &priorMovs, mov)
 			} else if !ownPieces.Test(to) { // 不吃子
 				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove), Empty)
-				movs = append(movs, mov)
+				checkAndAddMove(p, &movs, mov)
 			}
 		}
 	}
@@ -218,38 +241,71 @@ func (p *Position) allMoves() []Move {
 			}
 		}
 	*/
-	return movs
+	return append(priorMovs, movs...)
+}
+
+func (p *Position) checkLegalPos(movInt32 int32) {
+	all1 := p.Red.Union(p.Black)
+	all2 := p.Pawns.Union(p.Cannons).Union(p.Rooks).Union(p.Knights).
+		Union(p.Bishops).Union(p.Advisors).Union(p.Kings)
+	if all1.DifferenceCardinality(all2) == 0 {
+		// ok
+		return
+	}
+	mov := Move(movInt32)
+	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
+	from, to := uint(fromInt), uint(toInt)
+	log.Printf("mov: 0b%025b, %d, from: 0x%x, to: 0x%x\n", mov, mov, from, to)
+	log.Printf("movingPiece: %d, capturedPiece: %d\n", movingPiece, capturedPiece)
+	log.Println("start===========================================")
+	log.Printf("    red:\t%s\n", p.Red.StringHex())
+	log.Printf("  black:\t%s\n", p.Black.StringHex())
+	log.Printf("   pawn:\t%s\n", p.Pawns.StringHex())
+	log.Printf("   rook:\t%s\n", p.Rooks.StringHex())
+	log.Printf(" cannon:\t%s\n", p.Cannons.StringHex())
+	log.Printf(" knight:\t%s\n", p.Knights.StringHex())
+	log.Printf(" bishop:\t%s\n", p.Bishops.StringHex())
+	log.Printf("advisor:\t%s\n", p.Advisors.StringHex())
+	log.Printf("   king:\t%s\n", p.Kings.StringHex())
+	log.Printf("   all1:\t%s\n", all1.StringHex())
+	log.Printf("   all2:\t%s\n", all2.StringHex())
+	log.Println("end===========================================")
+	log.Panic("")
+}
+
+func (p *Position) MakeMoveByDsc(dsc string) {
+	if len(dsc) != 4 {
+		log.Panicf("bad dsc: %s\n", dsc)
+	}
+	from, to := ParseSquare(dsc[0:2]), ParseSquare(dsc[2:])
+	movingPiece := MakePiece(p.WhatPiece(uint(from)), p.IsRedMove)
+	capturedPiece := MakePiece(p.WhatPiece(uint(to)), !p.IsRedMove)
+	mov := toMove(from, to, movingPiece, capturedPiece)
+	p.makeMove(mov)
 }
 
 func (p *Position) MakeMove(mov int32) {
+	// p.checkLegalPos(mov)
 	p.makeMove(Move(mov))
+	// p.checkLegalPos(mov)
 }
 
 func (p *Position) makeMove(mov Move) {
+	if mov == 0 { // 认负
+		return
+	}
 	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
 	from, to := uint(fromInt), uint(toInt)
-	movingType, _ := GetPieceTypeAndSide(movingPiece)
-	switch movingType {
-	case Pawn:
-		p.Pawns.Clear(from).Set(to)
-	case Knight:
-		p.Knights.Clear(from).Set(to)
-	case Cannon:
-		p.Cannons.Clear(from).Set(to)
-	case Rook:
-		p.Rooks.Clear(from).Set(to)
-	case Bishop:
-		p.Bishops.Clear(from).Set(to)
-	case Advisor:
-		p.Advisors.Clear(from).Set(to)
-	}
-	if p.IsRedMove {
-		p.Red.Clear(from).Set(to)
-	} else {
-		p.Black.Clear(from).Set(to)
+	movingType, isRedSide := GetPieceTypeAndSide(movingPiece)
+	if p.IsRedMove != isRedSide {
+		log.Printf("from: 0x%x, to 0x%x, movingType: %d, capturedPiece: %d, p.IsRedMove: %v\n", from, to, movingType, capturedPiece, p.IsRedMove)
+		log.Panicf("p.IsRedMove(%v) != isRedSide(%v)\n", p.IsRedMove, isRedSide)
 	}
 	if capturedPiece != Empty {
-		captureType, _ := GetPieceTypeAndSide(capturedPiece)
+		captureType, isRed := GetPieceTypeAndSide(capturedPiece)
+		if p.IsRedMove == isRed {
+			log.Panicf("p.IsRedMove(%v) == isRed(%v)\n", p.IsRedMove, isRed)
+		}
 		switch captureType {
 		case Pawn:
 			p.Pawns.Clear(to)
@@ -263,6 +319,8 @@ func (p *Position) makeMove(mov Move) {
 			p.Bishops.Clear(to)
 		case Advisor:
 			p.Advisors.Clear(to)
+		case King:
+			p.Kings.Clear(to)
 		}
 		if p.IsRedMove {
 			p.Black.Clear(to)
@@ -270,11 +328,34 @@ func (p *Position) makeMove(mov Move) {
 			p.Red.Clear(to)
 		}
 	}
+	switch movingType {
+	case Pawn:
+		p.Pawns.Clear(from).Set(to)
+	case Knight:
+		p.Knights.Clear(from).Set(to)
+	case Cannon:
+		p.Cannons.Clear(from).Set(to)
+	case Rook:
+		p.Rooks.Clear(from).Set(to)
+	case Bishop:
+		p.Bishops.Clear(from).Set(to)
+	case Advisor:
+		p.Advisors.Clear(from).Set(to)
+	case King:
+		p.Kings.Clear(from).Set(to)
+	}
+	if p.IsRedMove {
+		p.Red.Clear(from).Set(to)
+	} else {
+		p.Black.Clear(from).Set(to)
+	}
 	p.IsRedMove = !p.IsRedMove
 }
 
 func (p *Position) UnMakeMove(mov int32) {
+	// p.checkLegalPos(mov)
 	p.unMakeMove(Move(mov))
+	// p.checkLegalPos(mov)
 }
 
 func (p *Position) unMakeMove(mov Move) {
@@ -294,6 +375,8 @@ func (p *Position) unMakeMove(mov Move) {
 		p.Bishops.Clear(to).Set(from)
 	case Advisor:
 		p.Advisors.Clear(to).Set(from)
+	case King:
+		p.Kings.Clear(to).Set(from)
 	}
 	if p.IsRedMove {
 		p.Black.Clear(to).Set(from)
@@ -315,6 +398,8 @@ func (p *Position) unMakeMove(mov Move) {
 			p.Bishops.Set(to)
 		case Advisor:
 			p.Advisors.Set(to)
+		case King:
+			p.Kings.Set(to)
 		}
 		if p.IsRedMove {
 			p.Red.Set(to)

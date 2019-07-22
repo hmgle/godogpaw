@@ -1,10 +1,13 @@
 package alphabetasearch
 
+import "github.com/sirupsen/logrus"
+
 type Move = int32
 
 type Board interface {
 	IsMaximizingPlayerTurn() bool
 	AllMoves() []Move
+	AllMovesCheckLegal() []Move
 	MakeMove(Move)
 	UnMakeMove(Move)
 	Evaluate() int
@@ -14,7 +17,7 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 	if depth == 0 {
 		return 0, board.Evaluate()
 	}
-	moves := board.AllMoves()
+	moves := board.AllMovesCheckLegal()
 	if board.IsMaximizingPlayerTurn() {
 		for i, move := range moves {
 			board.MakeMove(move)
@@ -39,10 +42,11 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 				bestMove = moves[i]
 			}
 			if alpha >= beta {
+				logrus.Debugf("alpha: %d, beta: %d, movi: %d\n", alpha, beta, i)
 				return moves[i], alpha
 			}
 		}
-		return bestMove, alpha
+		return bestMove, beta
 	}
 }
 
@@ -51,9 +55,6 @@ func alphaBetaSearch(board Board, depth uint8, alpha, beta int) (score int) {
 		return board.Evaluate()
 	}
 	moves := board.AllMoves()
-	if len(moves) == 0 {
-		return board.Evaluate()
-	}
 	if board.IsMaximizingPlayerTurn() {
 		for _, move := range moves {
 			board.MakeMove(move)

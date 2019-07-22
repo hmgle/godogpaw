@@ -57,6 +57,8 @@ const (
 	SquareNone = -1
 )
 
+// ParseSquare 返回字符表示的 sq.
+// SquareName 的反函数.
 func ParseSquare(s string) int {
 	if len(s) < 2 || s == "-" {
 		return SquareNone
@@ -172,7 +174,7 @@ func init() {
 				tmpBitSet.Set(uint(i))
 			}
 			// 与 sq 同一列
-			for i := sq & 0x0f; i <= 0xff; i = i + 0x1f {
+			for i := sq & 0x0f; i <= 0xff; i = i + 0x10 {
 				tmpBitSet.Set(uint(i))
 			}
 			tmpBitSet.InPlaceIntersection(BoardMask)
@@ -287,7 +289,7 @@ func init() {
 			LegalBlackPawnMvs[sq] = tmpBitSet
 		}
 	}
-	for rank := 6; rank <= 0x02; rank-- {
+	for rank := 6; rank >= 0x02; rank-- {
 		for file := 2; file <= 0x0b; file++ {
 			sq := MakeSquare(file, rank)
 			tmpBitSet := bitset.New(256)
