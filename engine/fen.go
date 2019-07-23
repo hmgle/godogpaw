@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/sirupsen/logrus"
 	"github.com/willf/bitset"
 )
 
@@ -52,5 +53,11 @@ func NewPositionByFen(fen string) *Position {
 		p.IsRedMove = true
 	}
 	p.initEval()
+	logrus.WithFields(logrus.Fields{
+		"p.redStrengthVal":   p.redStrengthVal,
+		"p.blackStrengthVal": p.blackStrengthVal,
+		"p.redPstVal":        p.redPstVal,
+		"p.blackPstVal":      p.blackPstVal,
+	}).Debugf("==== 初始化后评分")
 	return p
 }

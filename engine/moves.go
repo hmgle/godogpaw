@@ -304,28 +304,63 @@ func (p *Position) makeMove(mov Move) {
 
 	deltaStrengthVal := 0
 	if capturedPiece != Empty {
-		captureType, _ := GetPieceTypeAndSide(capturedPiece)
+		captureType, beCapturedSide := GetPieceTypeAndSide(capturedPiece)
 		switch captureType {
 		case Pawn:
 			p.Pawns.Clear(to)
+			if beCapturedSide {
+				p.redPstVal -= RedPawnPstValue[to]
+			} else {
+				p.blackPstVal -= BlackPawnPstValue[to]
+			}
 			deltaStrengthVal = -pawnVal
 		case Knight:
 			p.Knights.Clear(to)
+			if beCapturedSide {
+				p.redPstVal -= RedKnightPstValue[to]
+			} else {
+				p.blackPstVal -= BlackKnightPstValue[to]
+			}
 			deltaStrengthVal = -knightVal
 		case Rook:
 			p.Rooks.Clear(to)
+			if beCapturedSide {
+				p.redPstVal -= RedRookPstValue[to]
+			} else {
+				p.blackPstVal -= BlackRookPstValue[to]
+			}
 			deltaStrengthVal = -rookVal
 		case Cannon:
 			p.Cannons.Clear(to)
+			if beCapturedSide {
+				p.redPstVal -= RedCannonPstValue[to]
+			} else {
+				p.blackPstVal -= BlackCannonPstValue[to]
+			}
 			deltaStrengthVal = -cannonVal
 		case Bishop:
 			p.Bishops.Clear(to)
+			if beCapturedSide {
+				p.redPstVal -= RedBishopPstValue[to]
+			} else {
+				p.blackPstVal -= BlackBishopPstValue[to]
+			}
 			deltaStrengthVal = -bishopVal
 		case Advisor:
 			p.Advisors.Clear(to)
+			if beCapturedSide {
+				p.redPstVal -= RedAdvisorPstValue[to]
+			} else {
+				p.blackPstVal -= BlackAdvisorPstValue[to]
+			}
 			deltaStrengthVal = -advisorVal
 		case King:
 			p.Kings.Clear(to)
+			if beCapturedSide {
+				p.redPstVal -= RedKingPstValue[to]
+			} else {
+				p.blackPstVal -= BlackKingPstValue[to]
+			}
 			deltaStrengthVal = -kingVal
 		}
 		if p.IsRedMove {
@@ -415,16 +450,46 @@ func (p *Position) unMakeMove(mov Move) {
 		}
 	case Knight:
 		p.Knights.Clear(to).Set(from)
+		if p.IsRedMove {
+			p.blackPstVal += BlackKnightPstValue[from] - BlackKnightPstValue[to]
+		} else {
+			p.redPstVal += RedKnightPstValue[from] - RedKnightPstValue[to]
+		}
 	case Cannon:
 		p.Cannons.Clear(to).Set(from)
+		if p.IsRedMove {
+			p.blackPstVal += BlackCannonPstValue[from] - BlackCannonPstValue[to]
+		} else {
+			p.redPstVal += RedCannonPstValue[from] - RedCannonPstValue[to]
+		}
 	case Rook:
 		p.Rooks.Clear(to).Set(from)
+		if p.IsRedMove {
+			p.blackPstVal += BlackRookPstValue[from] - BlackRookPstValue[to]
+		} else {
+			p.redPstVal += RedRookPstValue[from] - RedRookPstValue[to]
+		}
 	case Bishop:
 		p.Bishops.Clear(to).Set(from)
+		if p.IsRedMove {
+			p.blackPstVal += BlackBishopPstValue[from] - BlackBishopPstValue[to]
+		} else {
+			p.redPstVal += RedBishopPstValue[from] - RedBishopPstValue[to]
+		}
 	case Advisor:
 		p.Advisors.Clear(to).Set(from)
+		if p.IsRedMove {
+			p.blackPstVal += BlackAdvisorPstValue[from] - BlackAdvisorPstValue[to]
+		} else {
+			p.redPstVal += RedAdvisorPstValue[from] - RedAdvisorPstValue[to]
+		}
 	case King:
 		p.Kings.Clear(to).Set(from)
+		if p.IsRedMove {
+			p.blackPstVal += BlackKingPstValue[from] - BlackKingPstValue[to]
+		} else {
+			p.redPstVal += RedKingPstValue[from] - RedKingPstValue[to]
+		}
 	}
 	if p.IsRedMove {
 		p.Black.Clear(to).Set(from)
@@ -433,28 +498,63 @@ func (p *Position) unMakeMove(mov Move) {
 	}
 	deltaStrengthVal := 0
 	if capturedPiece != Empty {
-		captureType, _ := GetPieceTypeAndSide(capturedPiece)
+		captureType, beCapturedSide := GetPieceTypeAndSide(capturedPiece)
 		switch captureType {
 		case Pawn:
 			p.Pawns.Set(to)
+			if beCapturedSide {
+				p.redPstVal += RedPawnPstValue[to]
+			} else {
+				p.blackPstVal += BlackPawnPstValue[to]
+			}
 			deltaStrengthVal = pawnVal
 		case Knight:
 			p.Knights.Set(to)
+			if beCapturedSide {
+				p.redPstVal += RedKnightPstValue[to]
+			} else {
+				p.blackPstVal += BlackKnightPstValue[to]
+			}
 			deltaStrengthVal = knightVal
 		case Rook:
 			p.Rooks.Set(to)
+			if beCapturedSide {
+				p.redPstVal += RedRookPstValue[to]
+			} else {
+				p.blackPstVal += BlackRookPstValue[to]
+			}
 			deltaStrengthVal = rookVal
 		case Cannon:
 			p.Cannons.Set(to)
+			if beCapturedSide {
+				p.redPstVal += RedCannonPstValue[to]
+			} else {
+				p.blackPstVal += BlackCannonPstValue[to]
+			}
 			deltaStrengthVal = cannonVal
 		case Bishop:
 			p.Bishops.Set(to)
+			if beCapturedSide {
+				p.redPstVal += RedBishopPstValue[to]
+			} else {
+				p.blackPstVal += BlackBishopPstValue[to]
+			}
 			deltaStrengthVal = bishopVal
 		case Advisor:
 			p.Advisors.Set(to)
+			if beCapturedSide {
+				p.redPstVal += RedAdvisorPstValue[to]
+			} else {
+				p.blackPstVal += BlackAdvisorPstValue[to]
+			}
 			deltaStrengthVal = advisorVal
 		case King:
 			p.Kings.Set(to)
+			if beCapturedSide {
+				p.redPstVal += RedKingPstValue[to]
+			} else {
+				p.blackPstVal += BlackKingPstValue[to]
+			}
 			deltaStrengthVal = kingVal
 		}
 		if p.IsRedMove {
