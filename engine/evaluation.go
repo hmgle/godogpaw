@@ -501,5 +501,8 @@ func (p *Position) Evaluate() int {
 		eval -= p.knightDexterity(int(sq), false)
 	}
 
-	return eval
+	if p.IsRedMove {
+		return eval
+	}
+	return -eval
 }

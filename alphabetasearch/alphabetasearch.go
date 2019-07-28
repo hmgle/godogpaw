@@ -1,7 +1,5 @@
 package alphabetasearch
 
-import "github.com/sirupsen/logrus"
-
 type Move = int32
 
 type Board interface {
@@ -17,37 +15,22 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 	if depth == 0 {
 		return 0, board.Evaluate()
 	}
+
 	moves := board.AllMovesCheckLegal()
-	if board.IsMaximizingPlayerTurn() {
-		for i, move := range moves {
-			board.MakeMove(move)
-			value := alphaBetaSearch(board, depth-1, alpha, beta)
-			board.UnMakeMove(move)
-			if value > alpha {
-				alpha = value
-				bestMove = moves[i]
-			}
-			if alpha >= beta {
-				return moves[i], alpha
-			}
+	for i, move := range moves {
+		board.MakeMove(move)
+		value := -alphaBetaSearch(board, depth-1, -beta, -alpha)
+		board.UnMakeMove(move)
+
+		if value >= beta {
+			return moves[i], beta
 		}
-		return bestMove, alpha
-	} else {
-		for i, move := range moves {
-			board.MakeMove(move)
-			value := alphaBetaSearch(board, depth-1, alpha, beta)
-			board.UnMakeMove(move)
-			if value < beta {
-				beta = value
-				bestMove = moves[i]
-			}
-			if alpha >= beta {
-				logrus.Debugf("alpha: %d, beta: %d, movi: %d\n", alpha, beta, i)
-				return moves[i], alpha
-			}
+		if value > alpha {
+			alpha = value
+			bestMove = moves[i]
 		}
-		return bestMove, beta
 	}
+	return bestMove, alpha
 }
 
 func alphaBetaSearch(board Board, depth uint8, alpha, beta int) (score int) {
@@ -55,31 +38,16 @@ func alphaBetaSearch(board Board, depth uint8, alpha, beta int) (score int) {
 		return board.Evaluate()
 	}
 	moves := board.AllMoves()
-	if board.IsMaximizingPlayerTurn() {
-		for _, move := range moves {
-			board.MakeMove(move)
-			value := alphaBetaSearch(board, depth-1, alpha, beta)
-			board.UnMakeMove(move)
-			if value > alpha {
-				alpha = value
-			}
-			if beta <= alpha {
-				break
-			}
+	for _, move := range moves {
+		board.MakeMove(move)
+		value := -alphaBetaSearch(board, depth-1, -beta, -alpha)
+		board.UnMakeMove(move)
+		if value >= beta {
+			return beta
 		}
-		return alpha
-	} else {
-		for _, move := range moves {
-			board.MakeMove(move)
-			value := alphaBetaSearch(board, depth-1, alpha, beta)
-			board.UnMakeMove(move)
-			if value < beta {
-				beta = value
-			}
-			if beta <= alpha {
-				break
-			}
+		if value > alpha {
+			alpha = value
 		}
-		return beta
 	}
+	return alpha
 }
