@@ -12,6 +12,8 @@ const (
 	kingVal    = 6000
 )
 
+const exposedCannonVal = 55
+
 var (
 	// RedRookPstValue 红车位置价值
 	RedRookPstValue [256]int = [...]int{
@@ -359,13 +361,11 @@ func (p *Position) knightDexterity(sq int, isRed bool) int {
 		if selfPs.Test(uint(sq + blockDelta)) {
 			punishVal -= 5
 		} else if sidePs.Test(uint(sq + blockDelta)) {
-			punishVal -= 9
+			punishVal -= 10
 		}
 	}
 	return punishVal
 }
-
-const exposedCannonVal = 55
 
 // isExposedCannon 是否空头.
 func (p *Position) isExposedCannon(cannonSq uint, isRed bool) int {
