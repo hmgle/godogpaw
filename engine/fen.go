@@ -53,6 +53,7 @@ func NewPositionByFen(fen string) *Position {
 		p.IsRedMove = true
 	}
 	p.initEval()
+	p.Key = p.ComputeKey()
 	logrus.WithFields(logrus.Fields{
 		"p.redStrengthVal":   p.redStrengthVal,
 		"p.blackStrengthVal": p.blackStrengthVal,

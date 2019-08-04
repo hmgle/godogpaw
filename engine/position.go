@@ -61,6 +61,10 @@ func (p *Position) addPiece(sq uint, pieceTyp int, isRed bool) {
 	}
 }
 
+func (p *Position) GetKey() uint64 {
+	return p.Key
+}
+
 func (p *Position) IsMaximizingPlayerTurn() bool {
 	return p.IsRedMove
 }

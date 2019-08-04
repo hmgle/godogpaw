@@ -294,6 +294,7 @@ func (p *Position) makeMove(mov Move) {
 	if mov == 0 { // 认负
 		return
 	}
+	// p.Key ^= sideKey
 	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
 	from, to := uint(fromInt), uint(toInt)
 	movingType, isRedSide := GetPieceTypeAndSide(movingPiece)
@@ -301,9 +302,21 @@ func (p *Position) makeMove(mov Move) {
 		log.Printf("from: 0x%x, to 0x%x, movingType: %d, capturedPiece: %d, p.IsRedMove: %v\n", from, to, movingType, capturedPiece, p.IsRedMove)
 		log.Panicf("p.IsRedMove(%v) != isRedSide(%v)\n", p.IsRedMove, isRedSide)
 	}
+	if movingPiece > Pawn {
+		p.Key ^= pieceSquareKey[movingPiece-2][from]
+		p.Key ^= pieceSquareKey[movingPiece-2][to]
+	} else {
+		p.Key ^= pieceSquareKey[movingPiece-1][from]
+		p.Key ^= pieceSquareKey[movingPiece-1][to]
+	}
 
 	deltaStrengthVal := 0
 	if capturedPiece != Empty {
+		if capturedPiece > Pawn {
+			p.Key ^= pieceSquareKey[capturedPiece-2][to]
+		} else {
+			p.Key ^= pieceSquareKey[capturedPiece-1][to]
+		}
 		captureType, beCapturedSide := GetPieceTypeAndSide(capturedPiece)
 		switch captureType {
 		case Pawn:
@@ -428,6 +441,13 @@ func (p *Position) makeMove(mov Move) {
 		p.Black.Clear(from).Set(to)
 	}
 	p.IsRedMove = !p.IsRedMove
+	/*
+		// check key
+		key := p.ComputeKey()
+		if p.Key != key {
+			log.Panicf("key: %s, p.Key: %s\n", key, p.Key)
+		}
+	*/
 }
 
 func (p *Position) UnMakeMove(mov int32) {
@@ -437,9 +457,17 @@ func (p *Position) UnMakeMove(mov int32) {
 }
 
 func (p *Position) unMakeMove(mov Move) {
+	// p.Key ^= sideKey
 	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
 	from, to := uint(fromInt), uint(toInt)
 	movingType, _ := GetPieceTypeAndSide(movingPiece)
+	if movingPiece > Pawn {
+		p.Key ^= pieceSquareKey[movingPiece-2][from]
+		p.Key ^= pieceSquareKey[movingPiece-2][to]
+	} else {
+		p.Key ^= pieceSquareKey[movingPiece-1][from]
+		p.Key ^= pieceSquareKey[movingPiece-1][to]
+	}
 	switch movingType {
 	case Pawn:
 		p.Pawns.Clear(to).Set(from)
@@ -498,6 +526,11 @@ func (p *Position) unMakeMove(mov Move) {
 	}
 	deltaStrengthVal := 0
 	if capturedPiece != Empty {
+		if capturedPiece > Pawn {
+			p.Key ^= pieceSquareKey[capturedPiece-2][to]
+		} else {
+			p.Key ^= pieceSquareKey[capturedPiece-1][to]
+		}
 		captureType, beCapturedSide := GetPieceTypeAndSide(capturedPiece)
 		switch captureType {
 		case Pawn:
@@ -566,4 +599,11 @@ func (p *Position) unMakeMove(mov Move) {
 		}
 	}
 	p.IsRedMove = !p.IsRedMove
+	/*
+		// check key
+		key := p.ComputeKey()
+		if p.Key != key {
+			log.Panicf("key: %s, p.Key: %s\n", key, p.Key)
+		}
+	*/
 }
