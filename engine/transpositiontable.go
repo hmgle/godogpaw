@@ -20,7 +20,7 @@ var (
 	// sideKey        uint64
 	pieceSquareKey [7 * 2][256]uint64 // 7 种类型棋子，2 种颜色，256 个位置，存放计算置换表的随机数
 
-	transTable []transEntry = make([]transEntry, tableSize)
+	transTable = make([]transEntry, tableSize)
 )
 
 func clearTransTable() {
@@ -29,6 +29,7 @@ func clearTransTable() {
 	}
 }
 
+// ProbeHash 置换表检测可取出相应记录时，返回相应记录.
 func ProbeHash(forRed bool, key uint64, depth uint8) (e *transEntry, ok bool) {
 	index := key % tableSize
 	if transTable[index].key != key {

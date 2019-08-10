@@ -96,7 +96,7 @@ func (p *Position) WhatPiece(sq uint) int {
 	if p.Kings.Test(sq) {
 		return King
 	}
-	panic(fmt.Errorf("Wrong piece on 0x%x", sq))
+	panic(fmt.Errorf("wrong piece on 0x%x", sq))
 }
 
 // isKingCheck 返回将帅是否照面.
@@ -201,8 +201,8 @@ func (p *Position) IsAnyPieceBetweenRank(sq1, sq2 int) bool {
 func (p *Position) knightAttacks(sq uint) *bitset.BitSet {
 	mask := bitset.New(256)
 	gb := p.Black.Union(p.Red)
-	if gb.Test(uint(sq) + 1) {
-		mask.Set(uint(sq) + 0x10 + 2)
+	if gb.Test(sq + 1) {
+		mask.Set(sq + 0x10 + 2)
 		mask.Set(sq - 0x10 + 2)
 	}
 	if gb.Test(sq - 1) {
@@ -223,8 +223,8 @@ func (p *Position) knightAttacks(sq uint) *bitset.BitSet {
 func (p *Position) knightAttacksNg(sq uint) *bitset.BitSet {
 	atts := bitset.New(256)
 	gb := p.Black.Union(p.Red)
-	if !gb.Test(uint(sq) + 1) {
-		atts.Set(uint(sq) + 0x10 + 2)
+	if !gb.Test(sq + 1) {
+		atts.Set(sq + 0x10 + 2)
 		atts.Set(sq - 0x10 + 2)
 	}
 	if !gb.Test(sq - 1) {

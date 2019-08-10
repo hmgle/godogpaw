@@ -85,7 +85,7 @@ func (p *Position) allMoves() []Move {
 	var (
 		ownPieces *bitset.BitSet
 		oppPieces *bitset.BitSet
-		allPieces *bitset.BitSet = p.Red.Union(p.Black)
+		allPieces = p.Red.Union(p.Black)
 	)
 	if p.IsRedMove {
 		ownPieces, oppPieces = p.Red, p.Black
@@ -299,7 +299,9 @@ func (p *Position) makeMove(mov Move) {
 	from, to := uint(fromInt), uint(toInt)
 	movingType, isRedSide := GetPieceTypeAndSide(movingPiece)
 	if p.IsRedMove != isRedSide {
-		log.Printf("from: 0x%x, to 0x%x, movingType: %d, capturedPiece: %d, p.IsRedMove: %v\n", from, to, movingType, capturedPiece, p.IsRedMove)
+		log.Printf(
+			"from: 0x%x, to 0x%x, movingType: %d, capturedPiece: %d, p.IsRedMove: %v\n",
+			from, to, movingType, capturedPiece, p.IsRedMove)
 		log.Panicf("p.IsRedMove(%v) != isRedSide(%v)\n", p.IsRedMove, isRedSide)
 	}
 	if movingPiece > Pawn {
