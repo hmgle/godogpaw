@@ -132,13 +132,6 @@ const (
 	Pawn
 )
 
-// Piece 位置信息.
-type Piece struct {
-	Position uint8
-	Name     int8
-	Color    bool // is red?
-}
-
 func init() {
 	for rank := 2; rank <= 0x0b; rank++ {
 		for file := 2; file <= 0x0a; file++ {
