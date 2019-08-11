@@ -294,7 +294,7 @@ func (p *Position) makeMove(mov Move) {
 	if mov == 0 { // 认负
 		return
 	}
-	// p.Key ^= sideKey
+	p.Key ^= sideKey
 	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
 	from, to := uint(fromInt), uint(toInt)
 	movingType, isRedSide := GetPieceTypeAndSide(movingPiece)
@@ -459,7 +459,7 @@ func (p *Position) UnMakeMove(mov int32) {
 }
 
 func (p *Position) unMakeMove(mov Move) {
-	// p.Key ^= sideKey
+	p.Key ^= sideKey
 	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
 	from, to := uint(fromInt), uint(toInt)
 	movingType, _ := GetPieceTypeAndSide(movingPiece)
