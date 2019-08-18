@@ -10,6 +10,7 @@ type transEntry struct {
 	depth  uint8
 	score  int16
 	move   Move
+	bound  int8
 }
 
 const (
@@ -45,7 +46,7 @@ func ProbeHash(forRed bool, key uint64, depth uint8) (e *transEntry, ok bool) {
 	return nil, false
 }
 
-func RecordHash(forRed bool, key uint64, depth uint8, score int16, move Move) {
+func RecordHash(forRed bool, key uint64, depth uint8, score int16, move Move, bound int8) {
 	index := key % tableSize
 	if transTable[index].key == key && transTable[index].depth >= depth {
 		return
@@ -55,18 +56,19 @@ func RecordHash(forRed bool, key uint64, depth uint8, score int16, move Move) {
 	transTable[index].forRed = forRed
 	transTable[index].move = move
 	transTable[index].score = score
+	transTable[index].bound = bound
 }
 
-func (p *Position) ProbeHash(depth uint8) (bestMove int32, score int, ok bool) {
+func (p *Position) ProbeHash(depth uint8) (bestMove int32, score int, hashFlag int8, ok bool) {
 	e, probeOk := ProbeHash(p.IsRedMove, p.Key, depth)
 	if !probeOk {
 		return
 	}
-	return int32(e.move), int(e.score), true
+	return int32(e.move), int(e.score), e.bound, true
 }
 
-func (p *Position) RecordHash(depth uint8, score int16, move int32) {
-	RecordHash(p.IsRedMove, p.Key, depth, score, Move(move))
+func (p *Position) RecordHash(depth uint8, score int16, move int32, bound int8) {
+	RecordHash(p.IsRedMove, p.Key, depth, score, Move(move), bound)
 }
 
 // getPieceSquareKey 返回该棋子（piece, side）在 square 的随机数.

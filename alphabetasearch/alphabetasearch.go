@@ -9,19 +9,37 @@ type Board interface {
 	MakeMove(Move)
 	UnMakeMove(Move)
 	Evaluate() int
-	ProbeHash(depth uint8) (bestMove Move, score int, ok bool)
-	RecordHash(depth uint8, score int16, move Move)
+	ProbeHash(depth uint8) (bestMove Move, score int, bound int8, ok bool)
+	RecordHash(depth uint8, score int16, move Move, bound int8)
 }
 
+const (
+	HashAlpha int8 = iota
+	HashBeta
+	HashPv
+)
+
 func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, score int) {
-	bestMoveHash, scoreHash, ok := board.ProbeHash(depth)
+	bestMoveHash, scoreHash, bound, ok := board.ProbeHash(depth)
 	if ok {
-		return bestMoveHash, scoreHash
+		switch bound {
+		case HashBeta:
+			if scoreHash >= beta {
+				return bestMoveHash, scoreHash
+			}
+		case HashAlpha:
+			if scoreHash <= alpha {
+				return bestMoveHash, scoreHash
+			}
+		case HashPv:
+			return bestMoveHash, scoreHash
+		}
 	}
 
+	var hashFlag int8 = HashAlpha
 	if depth == 0 {
 		score = board.Evaluate()
-		board.RecordHash(depth, int16(score), 0)
+		// board.RecordHash(depth, int16(score), 0)
 		return 0, score
 	}
 
@@ -34,27 +52,40 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 		board.UnMakeMove(move)
 
 		if value >= beta {
-			board.RecordHash(depth, int16(beta), moves[i])
+			board.RecordHash(depth, int16(beta), moves[i], HashBeta)
 			return moves[i], beta
 		}
 		if value > alpha {
 			alpha = value
 			bestMove = moves[i]
+			hashFlag = HashPv
 		}
 	}
-	board.RecordHash(depth, int16(alpha), bestMove)
+	board.RecordHash(depth, int16(alpha), bestMove, hashFlag)
 	return bestMove, alpha
 }
 
 func alphaBetaSearch(board Board, depth uint8, alpha, beta int) (score int) {
-	_, scoreHash, ok := board.ProbeHash(depth)
+	_, scoreHash, bound, ok := board.ProbeHash(depth)
 	if ok {
-		return scoreHash
+		switch bound {
+		case HashBeta:
+			if scoreHash >= beta {
+				return scoreHash
+			}
+		case HashAlpha:
+			if scoreHash <= alpha {
+				return scoreHash
+			}
+		case HashPv:
+			return scoreHash
+		}
 	}
 
+	var hashFlag int8 = HashAlpha
 	if depth == 0 {
 		score = board.Evaluate()
-		board.RecordHash(depth, int16(score), 0)
+		// board.RecordHash(depth, int16(score), 0)
 		return score
 	}
 	var bestMove Move
@@ -64,7 +95,7 @@ func alphaBetaSearch(board Board, depth uint8, alpha, beta int) (score int) {
 		value := -alphaBetaSearch(board, depth-1, -beta, -alpha)
 		board.UnMakeMove(move)
 		if value >= beta {
-			board.RecordHash(depth, int16(beta), move)
+			board.RecordHash(depth, int16(beta), move, HashBeta)
 			return beta
 		}
 		if value > alpha {
@@ -72,7 +103,7 @@ func alphaBetaSearch(board Board, depth uint8, alpha, beta int) (score int) {
 			bestMove = move
 		}
 	}
-	board.RecordHash(depth, int16(alpha), bestMove)
+	board.RecordHash(depth, int16(alpha), bestMove, hashFlag)
 	return alpha
 }
 
@@ -109,14 +140,26 @@ func negaScoutSearch(board Board, depth uint8, alpha, beta int) (score int) {
 }
 
 func pvsSearch(board Board, depth uint8, alpha, beta int) (score int) {
-	_, scoreHash, ok := board.ProbeHash(depth)
+	_, scoreHash, bound, ok := board.ProbeHash(depth)
 	if ok {
-		return scoreHash
+		switch bound {
+		case HashBeta:
+			if scoreHash >= beta {
+				return scoreHash
+			}
+		case HashAlpha:
+			if scoreHash <= alpha {
+				return scoreHash
+			}
+		case HashPv:
+			return scoreHash
+		}
 	}
 
+	var hashFlag int8 = HashAlpha
 	if depth == 0 {
 		score = board.Evaluate()
-		board.RecordHash(depth, int16(score), 0)
+		// board.RecordHash(depth, int16(score), 0)
 		return score
 	}
 	moves := board.AllMoves()
@@ -139,11 +182,13 @@ func pvsSearch(board Board, depth uint8, alpha, beta int) (score int) {
 		if value > alpha {
 			bestMove = move
 			alpha = value
+			hashFlag = HashPv
 		}
 		if alpha >= beta {
+			hashFlag = HashBeta
 			break
 		}
 	}
-	board.RecordHash(depth, int16(alpha), bestMove)
+	board.RecordHash(depth, int16(alpha), bestMove, hashFlag)
 	return alpha
 }

@@ -28,7 +28,7 @@ func (e *Engine) Search(depth uint8) (movDesc string, score int) {
 	val := e.p.Evaluate()
 	logrus.WithFields(logrus.Fields{
 		"val": val,
-	}).Debugf("xxx 搜索前局面估值")
+	}).Debugf("搜索前局面估值")
 	bestMov, score := alphabetasearch.AlphaBetaSearch(e.p, depth, -kingVal, kingVal)
 	// mov := Move(bestMov)
 	// from, to := mov.From(), mov.To()
@@ -41,7 +41,7 @@ func (e *Engine) Search(depth uint8) (movDesc string, score int) {
 			"blackStrengthVal": e.p.blackStrengthVal,
 			"redPstVal":        e.p.redPstVal,
 			"blackPstVal":      e.p.blackPstVal,
-		}).Debugf("xxx 搜索后执行着法后的局面估值")
+		}).Debugf("搜索后执行着法后的局面估值")
 		e.p.UnMakeMove(bestMov)
 	}
 	return Move(bestMov).String(), score
