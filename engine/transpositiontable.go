@@ -14,7 +14,7 @@ type transEntry struct {
 }
 
 const (
-	tableSize = 1024 * 1024 * 5 / 16
+	tableSize = 1024 * 1024 * 16 / 16
 )
 
 var (

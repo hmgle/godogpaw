@@ -39,7 +39,7 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 	var hashFlag int8 = HashAlpha
 	if depth == 0 {
 		score = board.Evaluate()
-		// board.RecordHash(depth, int16(score), 0)
+		board.RecordHash(depth, int16(score), 0, HashPv)
 		return 0, score
 	}
 
@@ -159,7 +159,7 @@ func pvsSearch(board Board, depth uint8, alpha, beta int) (score int) {
 	var hashFlag int8 = HashAlpha
 	if depth == 0 {
 		score = board.Evaluate()
-		// board.RecordHash(depth, int16(score), 0)
+		board.RecordHash(depth, int16(score), 0, HashPv)
 		return score
 	}
 	moves := board.AllMoves()

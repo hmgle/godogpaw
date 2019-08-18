@@ -62,7 +62,7 @@ func goCmd(p *Protocol, args []string) {
 		depth = uint8(newDepth)
 	}
 	// XXX DEBUG
-	depth = uint8(6)
+	// depth = uint8(6)
 	bestMov, score := p.eng.Search(depth)
 	fmt.Printf("info depth %d score %d pv\n", depth, score)
 	logrus.WithFields(logrus.Fields{
