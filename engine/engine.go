@@ -29,7 +29,7 @@ func (e *Engine) Search(depth uint8) (movDesc string, score int) {
 	logrus.WithFields(logrus.Fields{
 		"val": val,
 	}).Debugf("搜索前局面估值")
-	bestMov, score := alphabetasearch.AlphaBetaSearch(e.p, depth, -kingVal, kingVal)
+	bestMov, score := alphabetasearch.SearchMain(e.p, depth, -(kingVal + 100), kingVal+100)
 	// mov := Move(bestMov)
 	// from, to := mov.From(), mov.To()
 	{ // XXX DEBUG

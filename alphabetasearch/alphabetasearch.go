@@ -1,5 +1,7 @@
 package alphabetasearch
 
+import "sort"
+
 type Move = int32
 
 type Board interface {
@@ -18,6 +20,33 @@ const (
 	HashBeta
 	HashPv
 )
+
+var (
+	historyTab map[Move]int
+)
+
+func updateHistoryTable(mov Move, depth uint8) {
+	historyTab[mov] += int(depth) * int(depth)
+}
+
+func sortMoves(moves []Move) {
+	sort.SliceStable(moves, func(i, j int) bool {
+		return historyTab[moves[i]] > historyTab[moves[j]]
+	})
+}
+
+func SearchMain(board Board, depth uint8, alpha, beta int) (bestMove Move, score int) {
+	historyTab = make(map[Move]int)
+
+	for i := uint8(1); i <= depth; i++ {
+		bestMove, score = AlphaBetaSearch(board, i, alpha, beta)
+		if score > beta-100 || score < -(beta-100) {
+			break
+		}
+		// TODO 超时控制
+	}
+	return
+}
 
 func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, score int) {
 	bestMoveHash, scoreHash, bound, ok := board.ProbeHash(depth)
@@ -44,6 +73,7 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 	}
 
 	moves := board.AllMovesCheckLegal()
+	sortMoves(moves)
 	for i, move := range moves {
 		board.MakeMove(move)
 		// value := -alphaBetaSearch(board, depth-1, -beta, -alpha)
@@ -53,6 +83,7 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 
 		if value >= beta {
 			board.RecordHash(depth, int16(beta), moves[i], HashBeta)
+			updateHistoryTable(moves[i], depth)
 			return moves[i], beta
 		}
 		if value > alpha {
@@ -62,6 +93,9 @@ func AlphaBetaSearch(board Board, depth uint8, alpha, beta int) (bestMove Move, 
 		}
 	}
 	board.RecordHash(depth, int16(alpha), bestMove, hashFlag)
+	if hashFlag == HashPv {
+		updateHistoryTable(bestMove, depth)
+	}
 	return bestMove, alpha
 }
 
@@ -90,6 +124,7 @@ func alphaBetaSearch(board Board, depth uint8, alpha, beta int) (score int) {
 	}
 	var bestMove Move
 	moves := board.AllMoves()
+	sortMoves(moves)
 	for _, move := range moves {
 		board.MakeMove(move)
 		value := -alphaBetaSearch(board, depth-1, -beta, -alpha)
@@ -112,6 +147,7 @@ func negaScoutSearch(board Board, depth uint8, alpha, beta int) (score int) {
 		return board.Evaluate()
 	}
 	moves := board.AllMoves()
+	sortMoves(moves)
 	if len(moves) == 0 {
 		return alpha
 	}
@@ -166,6 +202,7 @@ func pvsSearch(board Board, depth uint8, alpha, beta int) (score int) {
 	if len(moves) == 0 {
 		return alpha
 	}
+	sortMoves(moves)
 	var value int
 	var bestMove Move
 	for i, move := range moves {
@@ -190,5 +227,8 @@ func pvsSearch(board Board, depth uint8, alpha, beta int) (score int) {
 		}
 	}
 	board.RecordHash(depth, int16(alpha), bestMove, hashFlag)
+	if hashFlag >= HashBeta {
+		updateHistoryTable(bestMove, depth)
+	}
 	return alpha
 }
