@@ -29,7 +29,21 @@ func updateHistoryTable(mov Move, depth uint8) {
 	historyTab[mov] += int(depth) * int(depth)
 }
 
+var shellSortGaps = [...]int{19, 5, 1}
+
 func sortMoves(moves []Move) {
+	for _, gap := range shellSortGaps {
+		for i := gap; i < len(moves); i++ {
+			j, t := i, moves[i]
+			for ; j >= gap && historyTab[moves[j-gap]] < historyTab[t]; j -= gap {
+				moves[j] = moves[j-gap]
+			}
+			moves[j] = t
+		}
+	}
+}
+
+func sortMoves2(moves []Move) {
 	sort.SliceStable(moves, func(i, j int) bool {
 		return historyTab[moves[i]] > historyTab[moves[j]]
 	})
