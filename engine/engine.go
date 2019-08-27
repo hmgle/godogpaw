@@ -42,7 +42,9 @@ func (e *Engine) Search(depth uint8) (movDesc string, score int) {
 			"redPstVal":        e.p.redPstVal,
 			"blackPstVal":      e.p.blackPstVal,
 		}).Debugf("搜索后执行着法后的局面估值")
-		e.p.UnMakeMove(bestMov)
+		if bestMov != 0 {
+			e.p.UnMakeMove(bestMov)
+		}
 	}
 	return Move(bestMov).String(), score
 }

@@ -1,13 +1,12 @@
 package alphabetasearch
 
-import "sort"
-
 type Move = int32
 
 type Board interface {
 	IsMaximizingPlayerTurn() bool
 	AllMoves() []Move
 	AllMovesCheckLegal() []Move
+	AllCaptureMoves() []Move
 	MakeMove(Move)
 	UnMakeMove(Move)
 	Evaluate() int
@@ -19,6 +18,10 @@ const (
 	HashAlpha int8 = iota
 	HashBeta
 	HashPv
+)
+
+const (
+	maxPLY uint8 = 64
 )
 
 var (
@@ -41,12 +44,6 @@ func sortMoves(moves []Move) {
 			moves[j] = t
 		}
 	}
-}
-
-func sortMoves2(moves []Move) {
-	sort.SliceStable(moves, func(i, j int) bool {
-		return historyTab[moves[i]] > historyTab[moves[j]]
-	})
 }
 
 func SearchMain(board Board, depth uint8, alpha, beta int) (bestMove Move, score int) {
@@ -189,7 +186,54 @@ func negaScoutSearch(board Board, depth uint8, alpha, beta int) (score int) {
 	return current
 }
 
+func quiesSearch(board Board, alpha, beta int, height uint8) (score int) {
+	if score >= beta || height >= maxPLY {
+		score = board.Evaluate()
+		return
+	}
+
+	_, scoreHash, bound, ok := board.ProbeHash(0)
+	if ok {
+		switch bound {
+		case HashBeta:
+			if scoreHash >= beta {
+				return scoreHash
+			}
+		case HashAlpha:
+			if scoreHash <= alpha {
+				return scoreHash
+			}
+		case HashPv:
+			return scoreHash
+		}
+	}
+
+	score = board.Evaluate()
+	if score > alpha {
+		alpha = score
+	}
+
+	moves := board.AllCaptureMoves()
+	for _, move := range moves {
+		board.MakeMove(move)
+		score = -quiesSearch(board, -beta, -alpha, height+1)
+		board.UnMakeMove(move)
+		if score >= beta {
+			return beta
+		}
+		if score > alpha {
+			alpha = score
+		}
+	}
+	return alpha
+}
+
 func pvsSearch(board Board, depth uint8, alpha, beta int) (score int) {
+	if depth <= 0 {
+		score = quiesSearch(board, alpha, beta, 0)
+		// board.RecordHash(0, int16(score), 0, HashPv)
+		return score
+	}
 	_, scoreHash, bound, ok := board.ProbeHash(depth)
 	if ok {
 		switch bound {
@@ -207,11 +251,13 @@ func pvsSearch(board Board, depth uint8, alpha, beta int) (score int) {
 	}
 
 	var hashFlag int8 = HashAlpha
-	if depth == 0 {
-		score = board.Evaluate()
-		board.RecordHash(depth, int16(score), 0, HashPv)
-		return score
-	}
+	/*
+		if depth == 0 {
+			score = board.Evaluate()
+			board.RecordHash(depth, int16(score), 0, HashPv)
+			return score
+		}
+	*/
 	moves := board.AllMoves()
 	if len(moves) == 0 {
 		return alpha
