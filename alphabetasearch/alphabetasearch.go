@@ -187,12 +187,6 @@ func negaScoutSearch(board Board, depth uint8, alpha, beta int) (score int) {
 }
 
 func quiesSearch(board Board, alpha, beta int, height uint8) (score int) {
-	score = board.Evaluate()
-	if height >= maxPLY || score >= beta {
-		board.RecordHash(0, int16(score), 0, HashPv)
-		return score
-	}
-
 	_, scoreHash, bound, ok := board.ProbeHash(0)
 	if ok {
 		switch bound {
@@ -210,6 +204,12 @@ func quiesSearch(board Board, alpha, beta int, height uint8) (score int) {
 	}
 
 	var hashFlag int8 = HashAlpha
+
+	score = board.Evaluate()
+	if height >= maxPLY || score >= beta {
+		board.RecordHash(0, int16(score), 0, HashPv)
+		return score
+	}
 
 	if score > alpha {
 		hashFlag = HashPv
