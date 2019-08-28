@@ -187,11 +187,6 @@ func negaScoutSearch(board Board, depth uint8, alpha, beta int) (score int) {
 }
 
 func quiesSearch(board Board, alpha, beta int, height uint8) (score int) {
-	if score >= beta || height >= maxPLY {
-		score = board.Evaluate()
-		return
-	}
-
 	_, scoreHash, bound, ok := board.ProbeHash(0)
 	if ok {
 		switch bound {
@@ -209,7 +204,15 @@ func quiesSearch(board Board, alpha, beta int, height uint8) (score int) {
 	}
 
 	score = board.Evaluate()
+	if height >= maxPLY {
+		board.RecordHash(0, int16(score), 0, HashPv)
+		return score
+	}
+
+	var hashFlag int8 = HashAlpha
+
 	if score > alpha {
+		hashFlag = HashPv
 		alpha = score
 	}
 
@@ -219,21 +222,24 @@ func quiesSearch(board Board, alpha, beta int, height uint8) (score int) {
 		score = -quiesSearch(board, -beta, -alpha, height+1)
 		board.UnMakeMove(move)
 		if score >= beta {
+			board.RecordHash(0, int16(score), 0, HashBeta)
 			return beta
 		}
 		if score > alpha {
+			hashFlag = HashPv
 			alpha = score
 		}
 	}
+	board.RecordHash(0, int16(score), 0, hashFlag)
 	return alpha
 }
 
 func pvsSearch(board Board, depth uint8, alpha, beta int) (score int) {
 	if depth <= 0 {
 		score = quiesSearch(board, alpha, beta, 0)
-		// board.RecordHash(0, int16(score), 0, HashPv)
 		return score
 	}
+
 	_, scoreHash, bound, ok := board.ProbeHash(depth)
 	if ok {
 		switch bound {
@@ -249,15 +255,29 @@ func pvsSearch(board Board, depth uint8, alpha, beta int) (score int) {
 			return scoreHash
 		}
 	}
-
-	var hashFlag int8 = HashAlpha
 	/*
-		if depth == 0 {
+		if depth <= 0 {
+			score = quiesSearch(board, alpha, beta, 0)
+			// board.RecordHash(0, int16(score), 0, HashPv)
+			return score
+		}
+	*/
+	/*
+		if depth <= 0 {
+			score = quiesSearch(board, alpha, beta, 0)
+			board.RecordHash(0, int16(score), 0, HashPv)
+			return score
+		}
+	*/
+	/*
+		if depth <= 0 {
 			score = board.Evaluate()
 			board.RecordHash(depth, int16(score), 0, HashPv)
 			return score
 		}
 	*/
+
+	var hashFlag int8 = HashAlpha
 	moves := board.AllMoves()
 	if len(moves) == 0 {
 		return alpha

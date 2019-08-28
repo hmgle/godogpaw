@@ -14,6 +14,16 @@ const (
 
 const exposedCannonVal = 55
 
+var valMap = map[int]int{
+	Rook:    rookVal,
+	Knight:  knightVal,
+	Cannon:  cannonVal,
+	Advisor: advisorVal,
+	Bishop:  bishopVal,
+	Pawn:    pawnVal,
+	King:    knightVal,
+}
+
 var (
 	// RedRookPstValue 红车位置价值
 	RedRookPstValue = [...]int{

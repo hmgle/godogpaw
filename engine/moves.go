@@ -87,6 +87,12 @@ func checkAndAddMove(p *Position, movs *[]Move, mov Move) {
 }
 
 func (p *Position) allMoves() []Move {
+	captureMovs := p.allCaptureMoves()
+	notCaptureMovs := p.allNotCaptureMoves()
+	return append(captureMovs, notCaptureMovs...)
+}
+
+func (p *Position) _allMoves() []Move {
 	var (
 		ownPieces *bitset.BitSet
 		oppPieces *bitset.BitSet
@@ -249,7 +255,7 @@ func (p *Position) allMoves() []Move {
 	return append(priorMovs, movs...)
 }
 
-func (p *Position) allCaptureMoves() []Move {
+func (p *Position) allNotCaptureMoves() (ms []Move) {
 	var (
 		ownPieces *bitset.BitSet
 		oppPieces *bitset.BitSet
@@ -260,6 +266,8 @@ func (p *Position) allCaptureMoves() []Move {
 	} else {
 		ownPieces, oppPieces = p.Black, p.Red
 	}
+	// target := ownPieces.Complement()
+	// XXX 被将时可缩小 target 范围
 	priorMovs := []Move{}
 	movs := []Move{}
 	// 车的着法
@@ -272,10 +280,165 @@ func (p *Position) allCaptureMoves() []Move {
 				if ownPieces.Test(to) || !IsInBoard(to) { // 遇到自己棋子或不在棋盘了
 					break
 				}
+				if oppPieces.Test(to) { // 对方棋子
+					break
+				}
+				// 不吃子
+				mov := toMove(int(from), int(to), MakePiece(Rook, p.IsRedMove), Empty)
+				checkAndAddMove(p, &movs, mov)
+			}
+		}
+	}
+	// 炮的着法
+	cannons := p.Cannons.Intersection(ownPieces)
+	for from, e := cannons.NextSet(0); e; from, e = cannons.NextSet(from + 1) {
+		deltas := []int{0x10, -0x10, 0x01, -0x01} // 上下左右四个方向
+		for _, delta := range deltas {
+			for i := uint(1); i <= 9; i++ {
+				to := from + i*uint(delta)
+				if !IsInBoard(to) { // 不在棋盘了
+					break
+				}
+				if allPieces.Test(to) { // 阻挡
+					break
+				}
+				// 不吃子
+				mov := toMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove), Empty)
+				checkAndAddMove(p, &movs, mov)
+			}
+		}
+	}
+	// 马的着法
+	knights := p.Knights.Intersection(ownPieces)
+	for from, e := knights.NextSet(0); e; from, e = knights.NextSet(from + 1) {
+		tos := p.knightAttacksNg(from)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if !allPieces.Test(to) { // 不吃子
+				mov := toMove(int(from), int(to), MakePiece(Knight, p.IsRedMove), Empty)
+				checkAndAddMove(p, &movs, mov)
+			}
+		}
+	}
+	// 卒的着法
+	pawns := p.Pawns.Intersection(ownPieces)
+	for from, e := pawns.NextSet(0); e; from, e = pawns.NextSet(from + 1) {
+		tos := LegalPawnMvs(int(from), p.IsRedMove)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if !allPieces.Test(to) { // 不吃子
+				mov := toMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove), Empty)
+				checkAndAddMove(p, &movs, mov)
+			}
+		}
+	}
+	// 象的着法
+	bishops := p.Bishops.Intersection(ownPieces)
+	for from, e := bishops.NextSet(0); e; from, e = bishops.NextSet(from + 1) {
+		tos := p.LegalBishopMvs(from)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if !allPieces.Test(to) { // 不吃子
+				mov := toMove(int(from), int(to), MakePiece(Bishop, p.IsRedMove), Empty)
+				checkAndAddMove(p, &movs, mov)
+			}
+		}
+	}
+	// 士的着法
+	advisors := p.Advisors.Intersection(ownPieces)
+	for from, e := advisors.NextSet(0); e; from, e = advisors.NextSet(from + 1) {
+		tos := LegalAdvisorMvs(from)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if !allPieces.Test(to) { // 不吃子
+				mov := toMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove), Empty)
+				checkAndAddMove(p, &movs, mov)
+			}
+		}
+	}
+	// 将的着法
+	kings := p.Kings.Intersection(ownPieces)
+	for from, e := kings.NextSet(0); e; e = false {
+		tos := LegalKingMvs[int(from)]
+		for to, e := tos.NextSet(0); e; to, e = tos.NextSet(to + 1) {
+			if !allPieces.Test(to) { // 不吃子
+				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove), Empty)
+				checkAndAddMove(p, &movs, mov)
+			}
+		}
+	}
+	/*
+		kingBitSet := p.Kings.Intersection(ownPieces)
+		kingSq, _ := kingBitSet.NextSet(0)
+		tos := LegalKingMvs[int(kingSq)]
+		for to, e := tos.NextSet(0); e; to, e = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				mov := toMove(int(kingSq), int(to), MakePiece(King, p.IsRedMove),
+					MakePiece(p.WhatPiece(to), !p.IsRedMove))
+				movs = append(movs, mov)
+			} else if !ownPieces.Test(to) { // 不吃子
+				mov := toMove(int(kingSq), int(to), MakePiece(King, p.IsRedMove), Empty)
+				movs = append(movs, mov)
+			}
+		}
+	*/
+	return append(priorMovs, movs...)
+}
+
+type moveWithValue struct {
+	mov Move
+	val int
+}
+
+var shellSortGaps = [...]int{19, 5, 1}
+
+func sortMovsWithValue(mvs []*moveWithValue) {
+	for _, gap := range shellSortGaps {
+		for i := gap; i < len(mvs); i++ {
+			j, t := i, mvs[i]
+			for ; j >= gap && mvs[j].val < t.val; j -= gap {
+				mvs[j] = mvs[j-gap]
+			}
+			mvs[j] = t
+		}
+	}
+}
+
+func (p *Position) allCaptureMoves() (ms []Move) {
+	mvs := p.allCaptureMovesWithValue()
+	sortMovsWithValue(mvs)
+	for i, _ := range mvs {
+		ms = append(ms, mvs[i].mov)
+	}
+	return
+}
+
+func (p *Position) allCaptureMovesWithValue() []*moveWithValue {
+	var (
+		ownPieces *bitset.BitSet
+		oppPieces *bitset.BitSet
+		allPieces = p.Red.Union(p.Black)
+	)
+	if p.IsRedMove {
+		ownPieces, oppPieces = p.Red, p.Black
+	} else {
+		ownPieces, oppPieces = p.Black, p.Red
+	}
+	mvs := []*moveWithValue{}
+	// 车的着法
+	rooks := p.Rooks.Intersection(ownPieces)
+	for from, e := rooks.NextSet(0); e; from, e = rooks.NextSet(from + 1) {
+		deltas := []int{0x10, -0x10, 0x01, -0x01} // 上下左右四个方向
+		for _, delta := range deltas {
+			for i := uint(1); i <= 9; i++ {
+				to := from + i*uint(delta)
+				if ownPieces.Test(to) || !IsInBoard(to) { // 遇到自己棋子或不在棋盘了
+					break
+				}
 				if oppPieces.Test(to) { // 吃子
+					captureType := p.WhatPiece(to)
 					mov := toMove(int(from), int(to), MakePiece(Rook, p.IsRedMove),
-						MakePiece(p.WhatPiece(to), !p.IsRedMove))
-					checkAndAddMove(p, &priorMovs, mov)
+						MakePiece(captureType, !p.IsRedMove))
+					mvs = append(mvs, &moveWithValue{
+						mov: mov,
+						val: valMap[captureType] - valMap[Rook],
+					})
 					break
 				}
 			}
@@ -299,9 +462,13 @@ func (p *Position) allCaptureMoves() []Move {
 					}
 					// 翻过了炮架，判断能否吃子
 					if oppPieces.Test(to) { // 对方棋子，可吃
+						captureType := p.WhatPiece(to)
 						mov := toMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove),
-							MakePiece(p.WhatPiece(to), !p.IsRedMove))
-						checkAndAddMove(p, &priorMovs, mov)
+							MakePiece(captureType, !p.IsRedMove))
+						mvs = append(mvs, &moveWithValue{
+							mov: mov,
+							val: valMap[captureType] - valMap[Cannon],
+						})
 						break
 					}
 					break
@@ -315,9 +482,13 @@ func (p *Position) allCaptureMoves() []Move {
 		tos := p.knightAttacksNg(from)
 		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
 			if oppPieces.Test(to) { // 吃子
+				captureType := p.WhatPiece(to)
 				mov := toMove(int(from), int(to), MakePiece(Knight, p.IsRedMove),
-					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				checkAndAddMove(p, &priorMovs, mov)
+					MakePiece(captureType, !p.IsRedMove))
+				mvs = append(mvs, &moveWithValue{
+					mov: mov,
+					val: valMap[captureType] - valMap[Knight],
+				})
 			}
 		}
 	}
@@ -327,9 +498,13 @@ func (p *Position) allCaptureMoves() []Move {
 		tos := LegalPawnMvs(int(from), p.IsRedMove)
 		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
 			if oppPieces.Test(to) { // 吃子
+				captureType := p.WhatPiece(to)
 				mov := toMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove),
-					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				checkAndAddMove(p, &priorMovs, mov)
+					MakePiece(captureType, !p.IsRedMove))
+				mvs = append(mvs, &moveWithValue{
+					mov: mov,
+					val: valMap[captureType] - valMap[Pawn],
+				})
 			}
 		}
 	}
@@ -339,9 +514,13 @@ func (p *Position) allCaptureMoves() []Move {
 		tos := p.LegalBishopMvs(from)
 		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
 			if oppPieces.Test(to) { // 吃子
+				captureType := p.WhatPiece(to)
 				mov := toMove(int(from), int(to), MakePiece(Bishop, p.IsRedMove),
-					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				checkAndAddMove(p, &priorMovs, mov)
+					MakePiece(captureType, !p.IsRedMove))
+				mvs = append(mvs, &moveWithValue{
+					mov: mov,
+					val: valMap[captureType] - valMap[Bishop],
+				})
 			}
 		}
 	}
@@ -351,9 +530,13 @@ func (p *Position) allCaptureMoves() []Move {
 		tos := LegalAdvisorMvs(from)
 		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
 			if oppPieces.Test(to) { // 吃子
+				captureType := p.WhatPiece(to)
 				mov := toMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove),
-					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				checkAndAddMove(p, &priorMovs, mov)
+					MakePiece(captureType, !p.IsRedMove))
+				mvs = append(mvs, &moveWithValue{
+					mov: mov,
+					val: valMap[captureType] - valMap[Advisor],
+				})
 			}
 		}
 	}
@@ -363,13 +546,17 @@ func (p *Position) allCaptureMoves() []Move {
 		tos := LegalKingMvs[int(from)]
 		for to, e := tos.NextSet(0); e; to, e = tos.NextSet(to + 1) {
 			if oppPieces.Test(to) { // 吃子
+				captureType := p.WhatPiece(to)
 				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove),
-					MakePiece(p.WhatPiece(to), !p.IsRedMove))
-				checkAndAddMove(p, &priorMovs, mov)
+					MakePiece(captureType, !p.IsRedMove))
+				mvs = append(mvs, &moveWithValue{
+					mov: mov,
+					val: valMap[captureType] - valMap[King],
+				})
 			}
 		}
 	}
-	return append(priorMovs, movs...)
+	return mvs
 }
 
 func (p *Position) checkLegalPos(movInt32 int32) {
