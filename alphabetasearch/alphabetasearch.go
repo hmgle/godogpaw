@@ -21,7 +21,7 @@ const (
 )
 
 const (
-	maxPLY uint8 = 64
+	maxPLY uint8 = 10
 )
 
 var (
@@ -206,7 +206,11 @@ func quiesSearch(board Board, alpha, beta int, height uint8) (score int) {
 	var hashFlag int8 = HashAlpha
 
 	score = board.Evaluate()
-	if height >= maxPLY || score >= beta {
+	if score >= beta {
+		board.RecordHash(0, int16(score), 0, HashPv)
+		return beta
+	}
+	if height >= maxPLY {
 		board.RecordHash(0, int16(score), 0, HashPv)
 		return score
 	}
