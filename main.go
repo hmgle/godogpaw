@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"runtime/pprof"
 
 	hooks "github.com/git-hulk/logrus-hooks"
 	"github.com/hmgle/godogpaw/engine"
@@ -10,6 +12,10 @@ import (
 )
 
 func main() {
+	cpuProfile, _ := os.Create("cpu_profile")
+	pprof.StartCPUProfile(cpuProfile)
+	defer pprof.StopCPUProfile()
+
 	ucciProtocol := ucci.NewProtocol(&engine.Engine{})
 	ucciProtocol.Run()
 }

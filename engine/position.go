@@ -20,7 +20,10 @@ type Position struct {
 	Red   *bitset.BitSet
 	Black *bitset.BitSet
 
-	Checkers *bitset.BitSet
+	redStrengthVal   int // 红方子力价值
+	blackStrengthVal int // 黑方子力价值
+	redPstVal        int // 红方位置价值
+	blackPstVal      int // 黑方位置价值
 
 	// PiecesSq [256]int // 存放每个位置的棋子
 
@@ -58,6 +61,10 @@ func (p *Position) addPiece(sq uint, pieceTyp int, isRed bool) {
 	}
 }
 
+func (p *Position) GetKey() uint64 {
+	return p.Key
+}
+
 func (p *Position) IsMaximizingPlayerTurn() bool {
 	return p.IsRedMove
 }
@@ -89,7 +96,7 @@ func (p *Position) WhatPiece(sq uint) int {
 	if p.Kings.Test(sq) {
 		return King
 	}
-	panic(fmt.Errorf("Wrong piece on 0x%x", sq))
+	panic(fmt.Errorf("wrong piece on 0x%x", sq))
 }
 
 // isKingCheck 返回将帅是否照面.
@@ -194,8 +201,8 @@ func (p *Position) IsAnyPieceBetweenRank(sq1, sq2 int) bool {
 func (p *Position) knightAttacks(sq uint) *bitset.BitSet {
 	mask := bitset.New(256)
 	gb := p.Black.Union(p.Red)
-	if gb.Test(uint(sq) + 1) {
-		mask.Set(uint(sq) + 0x10 + 2)
+	if gb.Test(sq + 1) {
+		mask.Set(sq + 0x10 + 2)
 		mask.Set(sq - 0x10 + 2)
 	}
 	if gb.Test(sq - 1) {
@@ -216,8 +223,8 @@ func (p *Position) knightAttacks(sq uint) *bitset.BitSet {
 func (p *Position) knightAttacksNg(sq uint) *bitset.BitSet {
 	atts := bitset.New(256)
 	gb := p.Black.Union(p.Red)
-	if !gb.Test(uint(sq) + 1) {
-		atts.Set(uint(sq) + 0x10 + 2)
+	if !gb.Test(sq + 1) {
+		atts.Set(sq + 0x10 + 2)
 		atts.Set(sq - 0x10 + 2)
 	}
 	if !gb.Test(sq - 1) {

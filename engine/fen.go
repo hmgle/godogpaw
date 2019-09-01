@@ -6,6 +6,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/sirupsen/logrus"
 	"github.com/willf/bitset"
 )
 
@@ -23,7 +24,6 @@ func NewPositionByFen(fen string) *Position {
 		Kings:    bitset.New(256),
 		Red:      bitset.New(256),
 		Black:    bitset.New(256),
-		Checkers: bitset.New(256),
 	}
 
 	tokens := strings.Split(fen, " ")
@@ -52,7 +52,13 @@ func NewPositionByFen(fen string) *Position {
 	if tokens[1] != "b" {
 		p.IsRedMove = true
 	}
-	// TODO 解析其余字段
-
+	p.initEval()
+	p.Key = p.ComputeKey()
+	logrus.WithFields(logrus.Fields{
+		"p.redStrengthVal":   p.redStrengthVal,
+		"p.blackStrengthVal": p.blackStrengthVal,
+		"p.redPstVal":        p.redPstVal,
+		"p.blackPstVal":      p.blackPstVal,
+	}).Debugf("==== 初始化后评分")
 	return p
 }
