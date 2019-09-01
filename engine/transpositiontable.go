@@ -92,7 +92,7 @@ func (p *Position) ComputeKey() uint64 {
 			result ^= getPieceSquareKey(piece, p.Red.Test(i), i)
 		}
 	}
-	// clearTransTable()
+	clearTransTable()
 	return result
 }
 

@@ -86,13 +86,13 @@ func checkAndAddMove(p *Position, movs *[]Move, mov Move) {
 	// p.unMakeMove(mov)
 }
 
-func (p *Position) allMoves() []Move {
+func (p *Position) _allMoves() []Move {
 	captureMovs := p.allCaptureMoves()
 	notCaptureMovs := p.allNotCaptureMoves()
 	return append(captureMovs, notCaptureMovs...)
 }
 
-func (p *Position) _allMoves() []Move {
+func (p *Position) allMoves() []Move {
 	var (
 		ownPieces *bitset.BitSet
 		oppPieces *bitset.BitSet
@@ -400,11 +400,139 @@ func sortMovsWithValue(mvs []*moveWithValue) {
 	}
 }
 
-func (p *Position) allCaptureMoves() (ms []Move) {
+func (p *Position) _allCaptureMoves() (ms []Move) {
 	mvs := p.allCaptureMovesWithValue()
 	sortMovsWithValue(mvs)
 	for i, _ := range mvs {
 		ms = append(ms, mvs[i].mov)
+	}
+	return
+}
+
+func (p *Position) allCaptureMoves() (ms []Move) {
+	var (
+		ownPieces *bitset.BitSet
+		oppPieces *bitset.BitSet
+		allPieces = p.Red.Union(p.Black)
+	)
+	if p.IsRedMove {
+		ownPieces, oppPieces = p.Red, p.Black
+	} else {
+		ownPieces, oppPieces = p.Black, p.Red
+	}
+	// 车的着法
+	rooks := p.Rooks.Intersection(ownPieces)
+	for from, e := rooks.NextSet(0); e; from, e = rooks.NextSet(from + 1) {
+		deltas := []int{0x10, -0x10, 0x01, -0x01} // 上下左右四个方向
+		for _, delta := range deltas {
+			for i := uint(1); i <= 9; i++ {
+				to := from + i*uint(delta)
+				if ownPieces.Test(to) || !IsInBoard(to) { // 遇到自己棋子或不在棋盘了
+					break
+				}
+				if oppPieces.Test(to) { // 吃子
+					captureType := p.WhatPiece(to)
+					mov := toMove(int(from), int(to), MakePiece(Rook, p.IsRedMove),
+						MakePiece(captureType, !p.IsRedMove))
+					ms = append(ms, mov)
+					break
+				}
+			}
+		}
+	}
+	// 炮的着法
+	cannons := p.Cannons.Intersection(ownPieces)
+	for from, e := cannons.NextSet(0); e; from, e = cannons.NextSet(from + 1) {
+		deltas := []int{0x10, -0x10, 0x01, -0x01} // 上下左右四个方向
+		for _, delta := range deltas {
+			afterShelf := false // 炮是否翻过架子
+			for i := uint(1); i <= 9; i++ {
+				to := from + i*uint(delta)
+				if !IsInBoard(to) { // 不在棋盘了
+					break
+				}
+				if allPieces.Test(to) { // 阻挡
+					if !afterShelf {
+						afterShelf = true
+						continue
+					}
+					// 翻过了炮架，判断能否吃子
+					if oppPieces.Test(to) { // 对方棋子，可吃
+						captureType := p.WhatPiece(to)
+						mov := toMove(int(from), int(to), MakePiece(Cannon, p.IsRedMove),
+							MakePiece(captureType, !p.IsRedMove))
+						ms = append(ms, mov)
+						break
+					}
+					break
+				}
+			}
+		}
+	}
+	// 马的着法
+	knights := p.Knights.Intersection(ownPieces)
+	for from, e := knights.NextSet(0); e; from, e = knights.NextSet(from + 1) {
+		tos := p.knightAttacksNg(from)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				captureType := p.WhatPiece(to)
+				mov := toMove(int(from), int(to), MakePiece(Knight, p.IsRedMove),
+					MakePiece(captureType, !p.IsRedMove))
+				ms = append(ms, mov)
+			}
+		}
+	}
+	// 卒的着法
+	pawns := p.Pawns.Intersection(ownPieces)
+	for from, e := pawns.NextSet(0); e; from, e = pawns.NextSet(from + 1) {
+		tos := LegalPawnMvs(int(from), p.IsRedMove)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				captureType := p.WhatPiece(to)
+				mov := toMove(int(from), int(to), MakePiece(Pawn, p.IsRedMove),
+					MakePiece(captureType, !p.IsRedMove))
+				ms = append(ms, mov)
+			}
+		}
+	}
+	// 象的着法
+	bishops := p.Bishops.Intersection(ownPieces)
+	for from, e := bishops.NextSet(0); e; from, e = bishops.NextSet(from + 1) {
+		tos := p.LegalBishopMvs(from)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				captureType := p.WhatPiece(to)
+				mov := toMove(int(from), int(to), MakePiece(Bishop, p.IsRedMove),
+					MakePiece(captureType, !p.IsRedMove))
+				ms = append(ms, mov)
+			}
+		}
+	}
+	// 士的着法
+	advisors := p.Advisors.Intersection(ownPieces)
+	for from, e := advisors.NextSet(0); e; from, e = advisors.NextSet(from + 1) {
+		tos := LegalAdvisorMvs(from)
+		for to, e2 := tos.NextSet(0); e2; to, e2 = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				captureType := p.WhatPiece(to)
+				mov := toMove(int(from), int(to), MakePiece(Advisor, p.IsRedMove),
+					MakePiece(captureType, !p.IsRedMove))
+				ms = append(ms, mov)
+			}
+		}
+	}
+	// 将的着法
+	kings := p.Kings.Intersection(ownPieces)
+	for from, e := kings.NextSet(0); e; e = false {
+		tos := LegalKingMvs[int(from)]
+		for to, e := tos.NextSet(0); e; to, e = tos.NextSet(to + 1) {
+			if oppPieces.Test(to) { // 吃子
+				captureType := p.WhatPiece(to)
+				mov := toMove(int(from), int(to), MakePiece(King, p.IsRedMove),
+					MakePiece(captureType, !p.IsRedMove))
+				ms = append(ms, mov)
+			}
+		}
 	}
 	return
 }
