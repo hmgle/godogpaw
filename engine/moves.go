@@ -687,35 +687,6 @@ func (p *Position) allCaptureMovesWithValue() []*moveWithValue {
 	return mvs
 }
 
-func (p *Position) checkLegalPos(movInt32 int32) {
-	all1 := p.Red.Union(p.Black)
-	all2 := p.Pawns.Union(p.Cannons).Union(p.Rooks).Union(p.Knights).
-		Union(p.Bishops).Union(p.Advisors).Union(p.Kings)
-	if all1.DifferenceCardinality(all2) == 0 {
-		// ok
-		return
-	}
-	mov := Move(movInt32)
-	fromInt, toInt, movingPiece, capturedPiece := mov.Parse()
-	from, to := uint(fromInt), uint(toInt)
-	log.Printf("mov: 0b%025b, %d, from: 0x%x, to: 0x%x\n", mov, mov, from, to)
-	log.Printf("movingPiece: %d, capturedPiece: %d\n", movingPiece, capturedPiece)
-	log.Println("start===========================================")
-	log.Printf("    red:\t%s\n", p.Red.StringHex())
-	log.Printf("  black:\t%s\n", p.Black.StringHex())
-	log.Printf("   pawn:\t%s\n", p.Pawns.StringHex())
-	log.Printf("   rook:\t%s\n", p.Rooks.StringHex())
-	log.Printf(" cannon:\t%s\n", p.Cannons.StringHex())
-	log.Printf(" knight:\t%s\n", p.Knights.StringHex())
-	log.Printf(" bishop:\t%s\n", p.Bishops.StringHex())
-	log.Printf("advisor:\t%s\n", p.Advisors.StringHex())
-	log.Printf("   king:\t%s\n", p.Kings.StringHex())
-	log.Printf("   all1:\t%s\n", all1.StringHex())
-	log.Printf("   all2:\t%s\n", all2.StringHex())
-	log.Println("end===========================================")
-	log.Panic("")
-}
-
 func (p *Position) MakeMoveByDsc(dsc string) {
 	if len(dsc) != 4 {
 		log.Panicf("bad dsc: %s\n", dsc)
@@ -728,9 +699,7 @@ func (p *Position) MakeMoveByDsc(dsc string) {
 }
 
 func (p *Position) MakeMove(mov int32) {
-	// p.checkLegalPos(mov)
 	p.makeMove(Move(mov))
-	// p.checkLegalPos(mov)
 }
 
 func (p *Position) makeMove(mov Move) {
@@ -896,9 +865,7 @@ func (p *Position) makeMove(mov Move) {
 }
 
 func (p *Position) UnMakeMove(mov int32) {
-	// p.checkLegalPos(mov)
 	p.unMakeMove(Move(mov))
-	// p.checkLegalPos(mov)
 }
 
 func (p *Position) unMakeMove(mov Move) {
