@@ -134,7 +134,7 @@ func alphaBetaSearch(board Board, depth uint8, alpha, beta int) (score int) {
 		return score
 	}
 	var bestMove Move
-	moves := board.AllMoves()
+	moves := board.AllMovesCheckLegal()
 	sortMoves(moves)
 	for _, move := range moves {
 		board.MakeMove(move)
@@ -157,7 +157,7 @@ func negaScoutSearch(board Board, depth uint8, alpha, beta int) (score int) {
 	if depth == 0 {
 		return board.Evaluate()
 	}
-	moves := board.AllMoves()
+	moves := board.AllMovesCheckLegal()
 	sortMoves(moves)
 	if len(moves) == 0 {
 		return alpha
@@ -282,7 +282,7 @@ func pvsSearch(board Board, depth uint8, alpha, beta int) (score int) {
 	*/
 
 	var hashFlag int8 = HashAlpha
-	moves := board.AllMoves()
+	moves := board.AllMovesCheckLegal()
 	if len(moves) == 0 {
 		return alpha
 	}
