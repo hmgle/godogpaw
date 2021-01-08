@@ -8,3 +8,7 @@ Why is it called `godogpaw`? It from the book "I Think, Therefore I Laugh":
 > announces, "Checkmate. That was a stupid move, dog. Besides having bad breath, 
 > you’re really dumb. I’ve beaten you five out of seven games."
 
+
+## Demo
+
+https://hmgle.github.io/dogpawasm/
