@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/willf/bitset"
+	"github.com/bits-and-blooms/bitset"
 )
 
 // Position 位置信息.

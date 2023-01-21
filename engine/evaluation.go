@@ -1,6 +1,6 @@
 package engine
 
-import "github.com/willf/bitset"
+import "github.com/bits-and-blooms/bitset"
 
 const (
 	rookVal    = 600
@@ -491,7 +491,7 @@ func (p *Position) initEval() {
 }
 
 func (p *Position) Evaluate() int {
-	var eval = p.redStrengthVal + p.redPstVal - p.blackStrengthVal - p.blackPstVal
+	eval := p.redStrengthVal + p.redPstVal - p.blackStrengthVal - p.blackPstVal
 
 	redCannons := p.Cannons.Intersection(p.Red)
 	for sq, e := redCannons.NextSet(0); e; sq, e = redCannons.NextSet(sq + 1) {

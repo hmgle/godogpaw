@@ -6,8 +6,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/bits-and-blooms/bitset"
 	"github.com/sirupsen/logrus"
-	"github.com/willf/bitset"
 )
 
 // NewPositionByFen 创建 Position.
@@ -39,7 +39,7 @@ func NewPositionByFen(fen string) *Position {
 		j := 0x02
 		for _, ch := range str {
 			if unicode.IsDigit(ch) {
-				var n, _ = strconv.Atoi(string(ch))
+				n, _ := strconv.Atoi(string(ch))
 				j += n
 			} else if unicode.IsLetter(ch) {
 				pieceTyp, isRed := GetPieceTypeAndSide(ParsePiece(ch))

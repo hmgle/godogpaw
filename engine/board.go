@@ -3,7 +3,7 @@ package engine
 import (
 	"strings"
 
-	"github.com/willf/bitset"
+	"github.com/bits-and-blooms/bitset"
 )
 
 /*

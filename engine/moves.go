@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/willf/bitset"
+	"github.com/bits-and-blooms/bitset"
 )
 
 // Move 前 0-8 位表示 from，第 8-16 位表示 to, 16-20 位表示移动的棋子，
@@ -403,7 +403,7 @@ func sortMovsWithValue(mvs []*moveWithValue) {
 func (p *Position) _allCaptureMoves() (ms []Move) {
 	mvs := p.allCaptureMovesWithValue()
 	sortMovsWithValue(mvs)
-	for i, _ := range mvs {
+	for i := range mvs {
 		ms = append(ms, mvs[i].mov)
 	}
 	return

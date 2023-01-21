@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/willf/bitset"
+	"github.com/bits-and-blooms/bitset"
 )
 
 // MakePiece 返回棋子的数字描述.
