@@ -25,7 +25,10 @@ func ParsePiece(ch rune) int {
 	spiece := string(unicode.ToLower(ch))
 	i := strings.Index("krncabp", spiece)
 	if i < 0 {
-		return Empty
+		i = strings.Index("krhcaep", spiece)
+		if i < 0 {
+			return Empty
+		}
 	}
 	return MakePiece(i+King, isRedSide)
 }
