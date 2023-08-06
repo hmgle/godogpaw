@@ -48,3 +48,7 @@ func (e *Engine) Search(depth uint8) (movDesc string, score int) {
 	}
 	return Move(bestMov).String(), score
 }
+
+func (e *Engine) Perft(depth uint) (nodes int) {
+	return e.p.Perft(depth)
+}

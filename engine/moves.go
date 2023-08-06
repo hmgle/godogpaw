@@ -1,8 +1,10 @@
 package engine
 
 import (
+	"fmt"
 	"log"
 	"strings"
+	"time"
 	"unsafe"
 
 	"github.com/bits-and-blooms/bitset"
@@ -1018,4 +1020,34 @@ func (p *Position) unMakeMove(mov Move) {
 			log.Panicf("key: %s, p.Key: %s\n", key, p.Key)
 		}
 	*/
+}
+
+func (p *Position) Perft(depth uint) (nodes int) {
+	startT := time.Now()
+	nodes = p.perft(depth, true)
+	fmt.Printf("depth: %d, nodes: %d\ntime: %v\n", depth, nodes, time.Since(startT))
+	return nodes
+}
+
+func (p *Position) perft(depth uint, root bool) (nodes int) {
+	moves := p.AllMovesCheckLegal()
+	if depth <= 1 {
+		if root {
+			for i, move := range moves {
+				fmt.Printf("%3d: %s: 1\n", i+1, Move(move).String())
+			}
+		}
+		return len(moves)
+	}
+	for _, move := range moves {
+		p.MakeMove(move)
+		cnt := p.perft(depth-1, false)
+		nodes += cnt
+		p.UnMakeMove(move)
+
+		if root {
+			fmt.Printf("%s: %d\n", Move(move).String(), cnt)
+		}
+	}
+	return nodes
 }

@@ -17,6 +17,7 @@ type Engine interface {
 	Position(fen string)
 	Move(movDsc string)
 	Search(depth uint8) (movDesc string, score int)
+	Perft(depth uint) (nodes int)
 }
 
 type Protocol struct {
@@ -37,6 +38,7 @@ func NewProtocol(e Engine) *Protocol {
 		"go":        goCmd,
 		"ponderhit": ponderhitCmd,
 		"stop":      stopCmd,
+		"perft":     perftCmd,
 	}
 	return p
 }
@@ -110,6 +112,7 @@ func findIndexString(slice []string, value string) int {
 	}
 	return -1
 }
+
 func setOptionCmd(p *Protocol, args []string) {
 	// TODO
 }
@@ -117,6 +120,18 @@ func setOptionCmd(p *Protocol, args []string) {
 func isReadyCmd(p *Protocol, args []string) {
 	p.eng.Prepare()
 	fmt.Println("readyok")
+}
+
+func perftCmd(p *Protocol, args []string) {
+	depth := uint(1)
+	if len(args) > 0 {
+		newDepth, err := strconv.Atoi(args[0])
+		if err != nil {
+			log.Panic(err)
+		}
+		depth = uint(newDepth)
+	}
+	p.eng.Perft(depth)
 }
 
 func ucciCmd(p *Protocol, args []string) {
