@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 	"unsafe"
 
 	"github.com/bits-and-blooms/bitset"
@@ -1022,7 +1023,10 @@ func (p *Position) unMakeMove(mov Move) {
 }
 
 func (p *Position) Perft(depth uint) (nodes int) {
-	return p.perft(depth, true)
+	startT := time.Now()
+	nodes = p.perft(depth, true)
+	fmt.Printf("depth: %d, nodes: %d\ntime: %v\n", depth, nodes, time.Since(startT))
+	return nodes
 }
 
 func (p *Position) perft(depth uint, root bool) (nodes int) {
