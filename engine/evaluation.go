@@ -1,518 +1,142 @@
 package engine
 
-import "github.com/bits-and-blooms/bitset"
+const advancedValue Value = 3
 
-const (
-	rookVal    = 600
-	knightVal  = 270
-	cannonVal  = 285
-	advisorVal = 120
-	bishopVal  = 120
-	pawnVal    = 30
-	kingVal    = 6000
-)
+var MATERIAL_WEIGHTS = [...]Value{
+	//  0    1    2    3    4    5     6
+	//  .    R    A    C    P    N     B
+	0, 600, 120, 285, 30, 251, 120, 6000,
 
-const exposedCannonVal = 55
-
-var valMap = map[int]int{
-	Rook:    rookVal,
-	Knight:  knightVal,
-	Cannon:  cannonVal,
-	Advisor: advisorVal,
-	Bishop:  bishopVal,
-	Pawn:    pawnVal,
-	King:    knightVal,
+	0,
+	//  9   10   11   12   13   14    15
+	//  r    a    c    p    n    b     k
+	-600, -120, -285, -30, -251, -120, -6000,
 }
 
-var (
-	// RedRookPstValue 红车位置价值
-	RedRookPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, -2, 10, 6, 14, 12, 14, 6, 10, -2, 0, 0, 0, 0, 0,
-		0, 0, 8, 4, 8, 16, 8, 16, 8, 4, 8, 0, 0, 0, 0, 0,
-		0, 0, 4, 8, 6, 14, 12, 14, 6, 8, 4, 0, 0, 0, 0, 0,
-		0, 0, 6, 10, 8, 14, 14, 14, 8, 10, 6, 0, 0, 0, 0, 0,
-		0, 0, 12, 16, 14, 20, 20, 20, 14, 16, 12, 0, 0, 0, 0, 0,
-		0, 0, 12, 14, 12, 18, 18, 18, 12, 14, 12, 0, 0, 0, 0, 0,
-		0, 0, 12, 18, 16, 22, 22, 22, 16, 18, 12, 0, 0, 0, 0, 0,
-		0, 0, 12, 12, 12, 18, 18, 18, 12, 12, 12, 0, 0, 0, 0, 0,
-		0, 0, 16, 20, 18, 24, 26, 24, 18, 20, 16, 0, 0, 0, 0, 0,
-		0, 0, 14, 14, 12, 18, 16, 18, 12, 14, 14, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// BlackRookPstValue 黑车位置价值
-	BlackRookPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 14, 14, 12, 18, 16, 18, 12, 14, 14, 0, 0, 0, 0, 0,
-		0, 0, 16, 20, 18, 24, 26, 24, 18, 20, 16, 0, 0, 0, 0, 0,
-		0, 0, 12, 12, 12, 18, 18, 18, 12, 12, 12, 0, 0, 0, 0, 0,
-		0, 0, 12, 18, 16, 22, 22, 22, 16, 18, 12, 0, 0, 0, 0, 0,
-		0, 0, 12, 14, 12, 18, 18, 18, 12, 14, 12, 0, 0, 0, 0, 0,
-		0, 0, 12, 16, 14, 20, 20, 20, 14, 16, 12, 0, 0, 0, 0, 0,
-		0, 0, 6, 10, 8, 14, 14, 14, 8, 10, 6, 0, 0, 0, 0, 0,
-		0, 0, 4, 8, 6, 14, 12, 14, 6, 8, 4, 0, 0, 0, 0, 0,
-		0, 0, 8, 4, 8, 16, 8, 16, 8, 4, 8, 0, 0, 0, 0, 0,
-		0, 0, -2, 10, 6, 14, 12, 14, 6, 10, -2, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// RedCannonPstValue 红炮位置价值
-	RedCannonPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 2, 6, 6, 6, 2, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 2, 4, 6, 6, 6, 4, 2, 0, 0, 0, 0, 0, 0,
-		0, 0, 4, 0, 8, 6, 10, 6, 8, 0, 4, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 2, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, -2, 0, 4, 2, 6, 2, 4, 0, -2, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 2, 8, 2, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, -2, 4, 10, 4, -2, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 2, 2, 0, -10, -8, -10, 0, 2, 2, 0, 0, 0, 0, 0,
-		0, 0, 2, 2, 0, -4, -14, -4, 0, 2, 2, 0, 0, 0, 0, 0,
-		0, 0, 6, 4, 0, -10, -12, -10, 0, 4, 6, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// BlackCannonPstValue 黑炮位置价值
-	BlackCannonPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 6, 4, 0, -10, -12, -10, 0, 4, 6, 0, 0, 0, 0, 0,
-		0, 0, 2, 2, 0, -4, -14, -4, 0, 2, 2, 0, 0, 0, 0, 0,
-		0, 0, 2, 2, 0, -10, -8, -10, 0, 2, 2, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, -2, 4, 10, 4, -2, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 2, 8, 2, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, -2, 0, 4, 2, 6, 2, 4, 0, -2, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 2, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 4, 0, 8, 6, 10, 6, 8, 0, 4, 0, 0, 0, 0, 0,
-		0, 0, 0, 2, 4, 6, 6, 6, 4, 2, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 2, 6, 6, 6, 2, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// RedKnightPstValue 红马位置价值
-	RedKnightPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, -4, 0, 0, 0, 0, 0, -4, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 2, 4, 4, -2, 4, 4, 2, 0, 0, 0, 0, 0, 0,
-		0, 0, 4, 2, 8, 8, 4, 8, 8, 2, 4, 0, 0, 0, 0, 0,
-		0, 0, 2, 6, 8, 6, 10, 6, 8, 6, 2, 0, 0, 0, 0, 0,
-		0, 0, 4, 12, 16, 14, 12, 14, 16, 12, 4, 0, 0, 0, 0, 0,
-		0, 0, 6, 16, 14, 18, 16, 18, 14, 16, 6, 0, 0, 0, 0, 0,
-		0, 0, 8, 24, 18, 24, 20, 24, 18, 24, 8, 0, 0, 0, 0, 0,
-		0, 0, 12, 14, 16, 20, 18, 20, 16, 14, 12, 0, 0, 0, 0, 0,
-		0, 0, 4, 10, 28, 16, 8, 16, 28, 10, 4, 0, 0, 0, 0, 0,
-		0, 0, 4, 8, 16, 12, 4, 12, 16, 8, 4, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// BlackKnightPstValue 黑马位置价值
-	BlackKnightPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 4, 8, 16, 12, 4, 12, 16, 8, 4, 0, 0, 0, 0, 0,
-		0, 0, 4, 10, 28, 16, 8, 16, 28, 10, 4, 0, 0, 0, 0, 0,
-		0, 0, 12, 14, 16, 20, 18, 20, 16, 14, 12, 0, 0, 0, 0, 0,
-		0, 0, 8, 24, 18, 24, 20, 24, 18, 24, 8, 0, 0, 0, 0, 0,
-		0, 0, 6, 16, 14, 18, 16, 18, 14, 16, 6, 0, 0, 0, 0, 0,
-		0, 0, 4, 12, 16, 14, 12, 14, 16, 12, 4, 0, 0, 0, 0, 0,
-		0, 0, 2, 6, 8, 6, 10, 6, 8, 6, 2, 0, 0, 0, 0, 0,
-		0, 0, 4, 2, 8, 8, 4, 8, 8, 2, 4, 0, 0, 0, 0, 0,
-		0, 0, 0, 2, 4, 4, -2, 4, 4, 2, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, -4, 0, 0, 0, 0, 0, -4, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// RedBishopPstValue 红相位置价值
-	RedBishopPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, -7, 0, 0, 0, 6, 0, 0, 0, -7, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, -2, 0, 0, 0, -2, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// BlackBishopPstValue 黑象位置价值
-	BlackBishopPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, -2, 0, 0, 0, -2, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, -7, 0, 0, 0, 6, 0, 0, 0, -7, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// RedAdvisorPstValue 红士位置价值
-	RedAdvisorPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, -2, 0, -2, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// BlackAdvisorPstValue 黑士位置价值
-	BlackAdvisorPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, -2, 0, -2, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, -2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// RedKingPstValue 红帅位置价值
-	RedKingPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, -5, 0, -5, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, -10, -10, -10, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, -15, -15, -15, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// BlackKingPstValue 黑将位置价值
-	BlackKingPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, -15, -15, -15, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, -10, -10, -10, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, -5, 0, -5, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// RedPawnPstValue 红兵位置价值
-	RedPawnPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, -2, 0, 4, 0, -2, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 2, 0, 8, 0, 8, 0, 8, 0, 2, 0, 0, 0, 0, 0,
-		0, 0, 6, 12, 18, 18, 20, 18, 18, 12, 6, 0, 0, 0, 0, 0,
-		0, 0, 10, 20, 30, 34, 40, 34, 30, 20, 10, 0, 0, 0, 0, 0,
-		0, 0, 14, 26, 42, 60, 80, 60, 42, 26, 14, 0, 0, 0, 0, 0,
-		0, 0, 18, 36, 56, 80, 120, 80, 56, 36, 18, 0, 0, 0, 0, 0,
-		0, 0, 0, 3, 6, 9, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-	// BlackPawnPstValue 黑兵位置价值
-	BlackPawnPstValue = [...]int{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 3, 6, 9, 12, 9, 6, 3, 0, 0, 0, 0, 0, 0,
-		0, 0, 18, 36, 56, 80, 120, 80, 56, 36, 18, 0, 0, 0, 0, 0,
-		0, 0, 14, 26, 42, 60, 80, 60, 42, 26, 14, 0, 0, 0, 0, 0,
-		0, 0, 10, 20, 30, 34, 40, 34, 30, 20, 10, 0, 0, 0, 0, 0,
-		0, 0, 6, 12, 18, 18, 20, 18, 18, 12, 6, 0, 0, 0, 0, 0,
-		0, 0, 2, 0, 8, 0, 8, 0, 8, 0, 2, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, -2, 0, 4, 0, -2, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	}
-)
-
-func rookValue(sq int, isRed bool) int {
-	if isRed {
-		return RedRookPstValue[sq]
-	}
-	return BlackRookPstValue[sq]
+func flipSquare(sq Square) Square {
+	return MakeSquareNG(FileOf(sq), RANK_9-RankOf(sq))
 }
 
-func knightValue(sq int, isRed bool) int {
-	if isRed {
-		return RedKnightPstValue[sq]
-	}
-	return BlackKnightPstValue[sq]
+var pieceSquareTable = [PIECE_TYPE_NB][SQUARE_NB]Value{
+	{}, // NO_PIECE_TYPE
+	{ // ROOK
+		194, 206, 204, 212, 200, 212, 204, 206, 194,
+		200, 208, 206, 212, 200, 212, 206, 208, 200,
+		198, 208, 204, 212, 212, 212, 204, 208, 198,
+		204, 209, 204, 212, 214, 212, 204, 209, 204,
+		208, 212, 212, 214, 215, 214, 212, 212, 208,
+		208, 211, 211, 214, 215, 214, 211, 211, 208,
+		206, 213, 213, 216, 216, 216, 213, 213, 206,
+		206, 208, 207, 214, 216, 214, 207, 208, 206,
+		206, 212, 209, 216, 233, 216, 209, 212, 206,
+		206, 208, 207, 213, 214, 213, 207, 208, 206,
+	},
+	{ // ADVISOR
+		0, 0, 20, 20, 0, 20, 20, 0, 0,
+		0, 0, 0, 0, 23, 0, 0, 0, 0,
+		18, 0, 0, 20, 23, 20, 0, 0, 18,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 20, 0, 0, 0, 20, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+	},
+	{ // CANNON
+		96, 96, 97, 99, 99, 99, 97, 96, 96,
+		96, 97, 98, 98, 98, 98, 98, 97, 96,
+		97, 96, 100, 99, 101, 99, 100, 96, 97,
+		96, 96, 96, 96, 96, 96, 96, 96, 96,
+		95, 96, 99, 96, 100, 96, 99, 96, 95,
+		96, 96, 96, 96, 100, 96, 96, 96, 96,
+		96, 99, 99, 98, 100, 98, 99, 99, 96,
+		97, 97, 96, 91, 92, 91, 96, 97, 97,
+		98, 98, 96, 92, 89, 92, 96, 98, 98,
+		100, 100, 96, 91, 90, 91, 96, 100, 100,
+	},
+	{ // PAWN
+		0, 0, 0, 11, 15, 11, 0, 0, 0,
+		0, 0, 0, 2, 2, 2, 0, 0, 0,
+		0, 0, 0, 1, 1, 1, 0, 0, 0,
+		7, 0, 7, 0, 15, 0, 7, 0, 7,
+		7, 0, 13, 0, 16, 0, 13, 0, 7,
+		14, 18, 20, 27, 29, 27, 20, 18, 14,
+		19, 23, 27, 29, 30, 29, 27, 23, 19,
+		19, 24, 32, 37, 37, 37, 32, 24, 19,
+		19, 24, 34, 42, 44, 42, 34, 24, 19,
+		9, 9, 9, 11, 13, 11, 9, 9, 9,
+	},
+	{ // KNIGHT
+		88, 85, 90, 88, 90, 88, 90, 85, 88,
+		85, 90, 92, 93, 78, 93, 92, 90, 85,
+		93, 92, 94, 95, 92, 95, 94, 92, 93,
+		92, 94, 98, 95, 98, 95, 98, 94, 92,
+		90, 98, 101, 102, 103, 102, 101, 98, 90,
+		90, 100, 99, 103, 104, 103, 99, 100, 90,
+		93, 108, 100, 107, 100, 107, 100, 108, 93,
+		92, 98, 99, 103, 99, 103, 99, 98, 92,
+		90, 96, 103, 97, 94, 97, 103, 96, 90,
+		90, 90, 90, 96, 90, 96, 90, 90, 90,
+	},
+	{ // BISHOP
+		0, 0, 20, 20, 0, 20, 20, 0, 0,
+		0, 0, 0, 0, 23, 0, 0, 0, 0,
+		18, 0, 0, 20, 23, 20, 0, 0, 18,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 20, 0, 0, 0, 20, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0,
+	},
+	{ // KING
+		0, 0, 0, 11, 15, 11, 0, 0, 0,
+		0, 0, 0, 2, 2, 2, 0, 0, 0,
+		0, 0, 0, 1, 1, 1, 0, 0, 0,
+		7, 0, 7, 0, 15, 0, 7, 0, 7,
+		7, 0, 13, 0, 16, 0, 13, 0, 7,
+		14, 18, 20, 27, 29, 27, 20, 18, 14,
+		19, 23, 27, 29, 30, 29, 27, 23, 19,
+		19, 24, 32, 37, 37, 37, 32, 24, 19,
+		19, 24, 34, 42, 44, 42, 34, 24, 19,
+		9, 9, 9, 11, 13, 11, 9, 9, 9,
+	},
 }
 
-func cannonValue(sq int, isRed bool) int {
-	if isRed {
-		return RedCannonPstValue[sq]
-	}
-	return BlackCannonPstValue[sq]
-}
+func (pos *PositionNG) Evaluate() Value {
+	var whiteScore Value
+	var blackScore Value
 
-func advisorValue(sq int, isRed bool) int {
-	if isRed {
-		return RedAdvisorPstValue[sq]
-	}
-	return BlackAdvisorPstValue[sq]
-}
+	for sq := Square(0); sq < SQUARE_NB; sq++ {
+		piece := pos.Board[sq]
+		if piece == NO_PIECE {
+			continue
+		}
 
-func bishopValue(sq int, isRed bool) int {
-	if isRed {
-		return RedBishopPstValue[sq]
-	}
-	return BlackBishopPstValue[sq]
-}
+		pt := TypeOf(piece)
+		if pt <= NO_PIECE_TYPE || pt >= PIECE_TYPE_NB {
+			continue
+		}
 
-func kingValue(sq int, isRed bool) int {
-	if isRed {
-		return RedKingPstValue[sq]
-	}
-	return BlackKingPstValue[sq]
-}
+		color := ColorOf(piece)
+		idx := sq
+		if color == BLACK {
+			idx = flipSquare(sq)
+		}
 
-func pawnValue(sq int, isRed bool) int {
-	if isRed {
-		return RedPawnPstValue[sq]
-	}
-	return BlackPawnPstValue[sq]
-}
-
-// 缺士车加分
-func (p *Position) rookAwardVal(isRed bool) int {
-	// TODO
-	return 0
-}
-
-// 缺象炮加分
-func (p *Position) cannonAwardVal(isRed bool) int {
-	// TODO
-	return 0
-}
-
-// knightDexterity 马罚分.
-func (p *Position) knightDexterity(sq int, isRed bool) int {
-	var (
-		punishVal int
-		selfPs    *bitset.BitSet
-		sidePs    *bitset.BitSet
-	)
-	if isRed {
-		selfPs, sidePs = p.Red, p.Black
-	} else {
-		selfPs, sidePs = p.Black, p.Red
-	}
-	blocksDeltas := []int{0x01, -0x01, 0x10, -0x10}
-	for _, blockDelta := range blocksDeltas {
-		if selfPs.Test(uint(sq + blockDelta)) {
-			punishVal -= 5
-		} else if sidePs.Test(uint(sq + blockDelta)) {
-			punishVal -= 10
+		val := pieceSquareTable[pt][idx]
+		if color == WHITE {
+			whiteScore += val
+		} else {
+			blackScore += val
 		}
 	}
-	return punishVal
-}
 
-// isExposedCannon 是否空头.
-func (p *Position) isExposedCannon(cannonSq uint, isRed bool) int {
-	var beCheckKingSq uint
-	if isRed {
-		blackKing := p.Kings.Intersection(p.Black)
-		beCheckKingSq, _ = blackKing.NextSet(0)
-	} else {
-		beCheckKingSq, _ = p.Kings.NextSet(0)
+	score := whiteScore - blackScore + advancedValue
+	if pos.SideToMove == BLACK {
+		score = -score
 	}
-	// XXX debug
-	if beCheckKingSq == 0 {
-		return 0
-	}
-	rookAttacks := RookAttacks[int(beCheckKingSq)]
-	if !rookAttacks.Test(cannonSq) {
-		return 0
-	}
-	if File(int(cannonSq)) == File(int(beCheckKingSq)) {
-		if !p.IsAnyPieceBetweenFile(int(cannonSq), int(beCheckKingSq)) {
-			return exposedCannonVal
-		}
-	} else if Rank(int(cannonSq)) == Rank(int(beCheckKingSq)) {
-		if !p.IsAnyPieceBetweenRank(int(cannonSq), int(beCheckKingSq)) {
-			return exposedCannonVal
-		}
-	}
-	return 0
-}
-
-func (p *Position) initEval() {
-	p.redStrengthVal = 0
-	p.blackStrengthVal = 0
-	p.redPstVal = 0
-	p.blackPstVal = 0
-
-	redRooks := p.Rooks.Intersection(p.Red)
-	for sq, e := redRooks.NextSet(0); e; sq, e = redRooks.NextSet(sq + 1) {
-		p.redStrengthVal += rookVal
-		p.redPstVal += RedRookPstValue[sq]
-	}
-	blackRooks := p.Rooks.Intersection(p.Black)
-	for sq, e := blackRooks.NextSet(0); e; sq, e = blackRooks.NextSet(sq + 1) {
-		p.blackStrengthVal += rookVal
-		p.blackPstVal += BlackRookPstValue[sq]
-	}
-
-	redCannons := p.Cannons.Intersection(p.Red)
-	for sq, e := redCannons.NextSet(0); e; sq, e = redCannons.NextSet(sq + 1) {
-		p.redStrengthVal += cannonVal
-		p.redPstVal += RedCannonPstValue[sq]
-	}
-	blackCannons := p.Cannons.Intersection(p.Black)
-	for sq, e := blackCannons.NextSet(0); e; sq, e = blackCannons.NextSet(sq + 1) {
-		p.blackStrengthVal += cannonVal
-		p.blackPstVal += BlackCannonPstValue[sq]
-	}
-
-	redKnights := p.Knights.Intersection(p.Red)
-	for sq, e := redKnights.NextSet(0); e; sq, e = redKnights.NextSet(sq + 1) {
-		p.redStrengthVal += knightVal
-		p.redPstVal += RedKingPstValue[sq]
-	}
-	blackKnights := p.Knights.Intersection(p.Black)
-	for sq, e := blackKnights.NextSet(0); e; sq, e = blackKnights.NextSet(sq + 1) {
-		p.blackStrengthVal += knightVal
-		p.blackPstVal += BlackKingPstValue[sq]
-	}
-
-	redPawns := p.Pawns.Intersection(p.Red)
-	for sq, e := redPawns.NextSet(0); e; sq, e = redPawns.NextSet(sq + 1) {
-		p.redStrengthVal += pawnVal
-		p.redPstVal += RedPawnPstValue[sq]
-	}
-	blackPawns := p.Pawns.Intersection(p.Black)
-	for sq, e := blackPawns.NextSet(0); e; sq, e = blackPawns.NextSet(sq + 1) {
-		p.blackStrengthVal += pawnVal
-		p.blackPstVal += BlackPawnPstValue[sq]
-	}
-
-	redBishops := p.Bishops.Intersection(p.Red)
-	for sq, e := redBishops.NextSet(0); e; sq, e = redBishops.NextSet(sq + 1) {
-		p.redStrengthVal += bishopVal
-		p.redPstVal += RedBishopPstValue[sq]
-	}
-	blackBishops := p.Bishops.Intersection(p.Black)
-	for sq, e := blackBishops.NextSet(0); e; sq, e = blackBishops.NextSet(sq + 1) {
-		p.blackStrengthVal += bishopVal
-		p.blackPstVal += BlackBishopPstValue[sq]
-	}
-
-	redAdvisors := p.Advisors.Intersection(p.Red)
-	for sq, e := redAdvisors.NextSet(0); e; sq, e = redAdvisors.NextSet(sq + 1) {
-		p.redStrengthVal += advisorVal
-		p.redPstVal += RedAdvisorPstValue[sq]
-	}
-	blackAdvisors := p.Advisors.Intersection(p.Black)
-	for sq, e := blackAdvisors.NextSet(0); e; sq, e = blackAdvisors.NextSet(sq + 1) {
-		p.blackStrengthVal += advisorVal
-		p.blackPstVal += BlackAdvisorPstValue[sq]
-	}
-
-	redKings := p.Kings.Intersection(p.Red)
-	for sq, e := redKings.NextSet(0); e; sq, e = redKings.NextSet(sq + 1) {
-		p.redStrengthVal += kingVal
-		p.redPstVal += RedKingPstValue[sq]
-	}
-	blackKings := p.Kings.Intersection(p.Black)
-	for sq, e := blackKings.NextSet(0); e; sq, e = blackKings.NextSet(sq + 1) {
-		p.blackStrengthVal += kingVal
-		p.blackPstVal += BlackKingPstValue[sq]
-	}
-}
-
-func (p *Position) Evaluate() int {
-	eval := p.redStrengthVal + p.redPstVal - p.blackStrengthVal - p.blackPstVal
-
-	redCannons := p.Cannons.Intersection(p.Red)
-	for sq, e := redCannons.NextSet(0); e; sq, e = redCannons.NextSet(sq + 1) {
-		eval += p.isExposedCannon(sq, true)
-	}
-	blackCannons := p.Cannons.Intersection(p.Black)
-	for sq, e := blackCannons.NextSet(0); e; sq, e = blackCannons.NextSet(sq + 1) {
-		eval -= p.isExposedCannon(sq, false)
-	}
-
-	redKnights := p.Knights.Intersection(p.Red)
-	for sq, e := redKnights.NextSet(0); e; sq, e = redKnights.NextSet(sq + 1) {
-		eval += p.knightDexterity(int(sq), true)
-	}
-	blackKnights := p.Knights.Intersection(p.Black)
-	for sq, e := blackKnights.NextSet(0); e; sq, e = blackKnights.NextSet(sq + 1) {
-		eval -= p.knightDexterity(int(sq), false)
-	}
-
-	if p.IsRedMove {
-		return eval
-	}
-	return -eval
+	return score
 }
