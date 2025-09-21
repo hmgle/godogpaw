@@ -7,28 +7,18 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/hmgle/godogpaw/engine"
 	"github.com/sirupsen/logrus"
 )
 
-type Engine interface {
-	GetInfo() (name, version, author string)
-	Prepare()
-	Position(fen string)
-	Move(movDsc string)
-	Search(depth uint8) (movDesc string, score int)
-	Perft(depth uint) (nodes int)
-}
-
 type Protocol struct {
 	cmds map[string]func(p *Protocol, args []string)
-	eng  Engine
 }
 
-func NewProtocol(e Engine) *Protocol {
-	p := &Protocol{
-		eng: e,
-	}
+func NewProtocol() *Protocol {
+	p := &Protocol{}
 	p.cmds = map[string]func(p *Protocol, args []string){
 		"ucci":      ucciCmd,
 		"isready":   isReadyCmd,
@@ -41,6 +31,15 @@ func NewProtocol(e Engine) *Protocol {
 		"perft":     perftCmd,
 	}
 	return p
+}
+
+func sendLine(format string, args ...interface{}) {
+	line := fmt.Sprintf(format, args...)
+	logrus.WithFields(logrus.Fields{
+		"direction": "out",
+		"payload":   line,
+	}).Debug("ucci reply")
+	fmt.Println(line)
 }
 
 func stopCmd(p *Protocol, args []string) {
@@ -63,16 +62,14 @@ func goCmd(p *Protocol, args []string) {
 		}
 		depth = uint8(newDepth)
 	}
-	// XXX DEBUG
-	// depth = uint8(6)
-	bestMov, score := p.eng.Search(depth)
-	fmt.Printf("info depth %d score %d pv\n", depth, score)
+	bestMov := enginePosition.SearchPosition(depth)
 	logrus.WithFields(logrus.Fields{
-		"bestmove": bestMov,
-		"depth":    depth,
-		"score":    score,
-	}).Debugf("返回最佳着法")
-	fmt.Printf("bestmove %s\n", bestMov)
+		"direction": "out",
+		"command":   "bestmove",
+		"move":      engine.Move2Str(bestMov),
+		"depth":     depth,
+	}).Debug("computed move")
+	sendLine("bestmove %s", engine.Move2Str(bestMov))
 }
 
 func banmovesCmd(p *Protocol, args []string) {
@@ -81,8 +78,14 @@ func banmovesCmd(p *Protocol, args []string) {
 
 const initFen = "rnbakabnr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RNBAKABNR w - - 0 1"
 
+var enginePosition engine.PositionNG
+
 // 格式：position {fen <FEN串> | startpos} [moves <后续着法列表>]
 func positionCmd(p *Protocol, args []string) {
+	if len(args) == 0 {
+		log.Printf("position command missing arguments")
+		return
+	}
 	var fen string
 	movesIndex := findIndexString(args, "moves")
 	if args[0] == "startpos" {
@@ -96,12 +99,42 @@ func positionCmd(p *Protocol, args []string) {
 	} else {
 		log.Fatalf("bad fen: %v", args)
 	}
-	p.eng.Position(fen)
+	enginePosition.Set(fen)
 	if movesIndex >= 0 {
-		for _, dscMov := range args[movesIndex+1:] {
-			p.eng.Move(dscMov)
+		for _, mv := range args[movesIndex+1:] {
+			move, err := engine.ParseUCIMove(&enginePosition, mv)
+			if err != nil {
+				sendLine("info string invalid move %s: %v", mv, err)
+				return
+			}
+			var st engine.StateInfo
+			enginePosition.DoMove(move, &st)
 		}
 	}
+	isOk := enginePosition.PosIsOk()
+	log.Printf("fen: %s, p.PosIsOk: %+v, eval: %d, red_ksq: %d, black_ksq: %d\n",
+		fen, isOk, enginePosition.Evaluate(), enginePosition.KingSQ[engine.WHITE], enginePosition.KingSQ[engine.BLACK])
+}
+
+func perftCmd(p *Protocol, args []string) {
+	if len(args) == 0 {
+		sendLine("info string usage: perft <depth>")
+		return
+	}
+	depth, err := strconv.Atoi(args[0])
+	if err != nil || depth < 0 {
+		sendLine("info string invalid depth %s", args[0])
+		return
+	}
+	start := time.Now()
+	nodes := enginePosition.Perft(uint(depth), false)
+	elapsed := time.Since(start)
+	nps := 0
+	if elapsed > 0 {
+		nps = int(float64(nodes) / elapsed.Seconds())
+	}
+	sendLine("info string perft depth %d nodes %d time %dms nps %d", depth, nodes, elapsed.Milliseconds(), nps)
+	sendLine("perft %d", nodes)
 }
 
 func findIndexString(slice []string, value string) int {
@@ -118,27 +151,11 @@ func setOptionCmd(p *Protocol, args []string) {
 }
 
 func isReadyCmd(p *Protocol, args []string) {
-	p.eng.Prepare()
-	fmt.Println("readyok")
-}
-
-func perftCmd(p *Protocol, args []string) {
-	depth := uint(1)
-	if len(args) > 0 {
-		newDepth, err := strconv.Atoi(args[0])
-		if err != nil {
-			log.Panic(err)
-		}
-		depth = uint(newDepth)
-	}
-	p.eng.Perft(depth)
+	sendLine("readyok")
 }
 
 func ucciCmd(p *Protocol, args []string) {
-	name, version, author := p.eng.GetInfo()
-	fmt.Printf("id name %s %s\n", name, version)
-	fmt.Printf("id author %s\n", author)
-	fmt.Println("ucciok")
+	sendLine("ucciok")
 }
 
 func (p *Protocol) Run() {
@@ -149,8 +166,9 @@ func (p *Protocol) Run() {
 			return
 		}
 		logrus.WithFields(logrus.Fields{
-			"cmd": cmdLine,
-		}).Debug("")
+			"direction": "in",
+			"payload":   cmdLine,
+		}).Debug("ucci recv")
 		cmdArgs := strings.Fields(cmdLine)
 		cmd, ok := p.cmds[cmdArgs[0]]
 		if ok {
