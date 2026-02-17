@@ -40,23 +40,12 @@ func Quiescence(alpha, beta Value, pos *PositionNG) (bestScore Value) {
 		var st StateInfo
 		pos.DoMove(currentMove, &st)
 		score := -Quiescence(-beta, -alpha, pos)
-		/*
-			StorePvMove: a:-38, b: -37, score(0)): -37, ply: 4, move: i0h0, pos:
-			-Quiescence(37, 38)
-			eval = -34*2 = -68
-		*/
 		pos.UndoMove(currentMove)
 		if score > alpha {
-			// Update the Principle Variation
-			// fmt.Printf("xxx StorePvMove: %s, score: %d, searchPly: %d\n", pos.MoveStr(currentMove), score, pos.GamePly)
-			// fmt.Printf("StorePvMove: a:%d, b: %d, score(%d)): %v, ply: %d, move: %s, pos: %s\n",
-			// 	alpha, beta, pos.SideToMove, score, pos.GamePly, Move2Str(currentMove), pos.String())
 			StorePvMove(currentMove, pos.GamePly)
 			alpha = score
 
 			if score >= beta {
-				// log.Printf("xxxxxxxxxxxx==============xxx\n")
-				// time.Sleep(time.Second * 5)
 				return score
 			}
 		}
@@ -108,10 +97,8 @@ func Negamax(alpha, beta Value, pos *PositionNG, depth uint8, doNullMove bool) (
 	}
 
 	var staticEval Value
-	staticEvalReady := false
 	if !pvNode && !inCheck {
 		staticEval = pos.Evaluate()
-		staticEvalReady = true
 		if depth <= 5 && !rootNode && beta > -1000 && alpha < 1000 {
 			if staticEval < alpha-int32(depth)*200 { // fail-low
 				return staticEval
@@ -159,10 +146,6 @@ func Negamax(alpha, beta Value, pos *PositionNG, depth uint8, doNullMove bool) (
 		}
 
 		// futility pruning condition
-		if !staticEvalReady {
-			staticEval = pos.Evaluate()
-			staticEvalReady = true
-		}
 		futilityMargin := [...]Value{0, MATERIAL_WEIGHTS[W_PAWN], MATERIAL_WEIGHTS[W_KNIGHT], MATERIAL_WEIGHTS[W_CANNON]}
 		if depth < 4 && abs(int(alpha)) < int(MATE_SCORE) && staticEval+futilityMargin[depth] <= alpha {
 			futilityPruning = 1
@@ -224,7 +207,6 @@ func Negamax(alpha, beta Value, pos *PositionNG, depth uint8, doNullMove bool) (
 			hashFlag = TT_EXACT
 			bestMove = currentMove
 			alpha = score
-			// fmt.Printf("vvv StorePvMove: %s, score: %d, depth: %d, alpha: %d, searchPly: %d\n", pos.MoveStr(currentMove), score, depth, alpha, pos.GamePly)
 			StorePvMove(currentMove, pos.GamePly)
 
 			// store history moves

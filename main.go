@@ -12,18 +12,6 @@ import (
 
 func main() {
 	defer logPanic()
-	/*
-		f, err := os.Create("cpu_profile")
-		if err != nil {
-			log.Fatal("create:", err)
-		}
-		defer f.Close()
-		err = pprof.StartCPUProfile(f)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer pprof.StopCPUProfile()
-	*/
 
 	ucciProtocol := ucci.NewProtocol()
 	log.Printf("finish init\n")

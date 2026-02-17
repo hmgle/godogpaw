@@ -182,12 +182,4 @@ func MakeSquareNG(f File, r Rank) Square {
 	return r*FILE_NB + f
 }
 
-// From ethereal
-const (
-	HISTORY_GOOD int8 = iota
-	HISTORY_TOTAL
-	HISTORY_NB
-)
-
-// type HistoryTable [COLOR_NB][SQUARE_NB][SQUARE_NB][HISTORY_NB]Value
 type HistoryTable [COLOR_NB][SQUARE_NB][SQUARE_NB]Value

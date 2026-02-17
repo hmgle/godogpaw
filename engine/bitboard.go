@@ -56,29 +56,6 @@ func (u Bitboard) SubWrap64(v uint64) Bitboard {
 	return Bitboard{lo, hi}
 }
 
-// Sub64 returns u-v.
-func (u Bitboard) Sub64(v uint64) Bitboard {
-	lo, borrow := bits.Sub64(u.Lo, v, 0)
-	hi, borrow := bits.Sub64(u.Hi, 0, borrow)
-	if borrow != 0 {
-		panic("underflow")
-	}
-	return Bitboard{lo, hi}
-}
-
-// Mul returns u*v, panicking on overflow.
-func (u Bitboard) Mul(v Bitboard) Bitboard {
-	hi, lo := bits.Mul64(u.Lo, v.Lo)
-	p0, p1 := bits.Mul64(u.Hi, v.Lo)
-	p2, p3 := bits.Mul64(u.Lo, v.Hi)
-	hi, c0 := bits.Add64(hi, p1, 0)
-	hi, c1 := bits.Add64(hi, p3, c0)
-	if (u.Hi != 0 && v.Hi != 0) || p0 != 0 || p2 != 0 || c1 != 0 {
-		panic("overflow")
-	}
-	return Bitboard{lo, hi}
-}
-
 // MulWrap returns u*v with wraparound semantics; for example,
 // Max.MulWrap(Max) == 1.
 func (u Bitboard) MulWrap(v Bitboard) Bitboard {
@@ -435,8 +412,6 @@ func Distance(x, y Square) uint {
 type Magic struct {
 	mask  Bitboard
 	magic Bitboard
-	// attacks    *[]Bitboard
-	// attacksPtr uintptr
 	shift uint
 
 	attacks unsafe.Pointer
@@ -663,44 +638,19 @@ func AttacksBB(pt PieceType, s Square, occupied Bitboard) Bitboard {
 	}
 	switch pt {
 	case ROOK:
-		// ptr := RookMagics[s].attacksPtr + uintptr(RookMagics[s].Index(occupied))*unsafe.Sizeof(RookTable[0])
-		// return *(*Bitboard)(unsafe.Pointer(ptr))
-		// return *(*Bitboard)(unsafe.Pointer(RookMagics[s].attacksPtr + uintptr(RookMagics[s].Index(occupied))*unsafe.Sizeof(RookTable[0])))
-
 		return *(*Bitboard)(unsafe.Pointer(uintptr(RookMagics[s].attacks) + uintptr(RookMagics[s].Index(occupied))*unsafe.Sizeof(RookTable[0])))
-		// return (*(RookMagics[s].attacks))[RookMagics[s].Index(occupied)]
 	case CANNON:
-		// return (*(CannonMagics[s].attacks))[CannonMagics[s].Index(occupied)]
 		return *(*Bitboard)(unsafe.Pointer(uintptr(CannonMagics[s].attacks) + uintptr(CannonMagics[s].Index(occupied))*unsafe.Sizeof(CannonTable[0])))
 	case BISHOP:
-		// return (*(BishopMagics[s].attacks))[BishopMagics[s].Index(occupied)]
 		return *(*Bitboard)(unsafe.Pointer(uintptr(BishopMagics[s].attacks) + uintptr(BishopMagics[s].Index(occupied))*unsafe.Sizeof(BishopTable[0])))
 	case KNIGHT:
-		// return (*(KnightMagics[s].attacks))[KnightMagics[s].Index(occupied)]
 		return *(*Bitboard)(unsafe.Pointer(uintptr(KnightMagics[s].attacks) + uintptr(KnightMagics[s].Index(occupied))*unsafe.Sizeof(KnightTable[0])))
 	case KNIGHT_TO:
-		// return (*(KnightToMagics[s].attacks))[KnightToMagics[s].Index(occupied)]
 		return *(*Bitboard)(unsafe.Pointer(uintptr(KnightToMagics[s].attacks) + uintptr(KnightToMagics[s].Index(occupied))*unsafe.Sizeof(KnightToTable[0])))
 	default:
 		return PseudoAttacks[pt][s]
 	}
 }
-
-// template<PieceType Pt>
-// inline Bitboard attacks_bb(Square s, Bitboard occupied) {
-//
-//   assert((Pt != PAWN) && (is_ok(s)));
-//
-//   switch (Pt)
-//   {
-//   case ROOK     : return     RookMagics[s].attacks[    RookMagics[s].index(occupied)];
-//   case CANNON   : return   CannonMagics[s].attacks[  CannonMagics[s].index(occupied)];
-//   case BISHOP   : return   BishopMagics[s].attacks[  BishopMagics[s].index(occupied)];
-//   case KNIGHT   : return   KnightMagics[s].attacks[  KnightMagics[s].index(occupied)];
-//   case KNIGHT_TO: return KnightToMagics[s].attacks[KnightToMagics[s].index(occupied)];
-//   default       : return PseudoAttacks[Pt][s];
-//   }
-// }
 
 var (
 	RookTable     [0x108000]Bitboard // To store rook attacks
@@ -717,8 +667,6 @@ var (
 	KnightMagics   [SQUARE_NB]Magic
 	KnightToMagics [SQUARE_NB]Magic
 )
-
-var RookAttackMap [SQUARE_NB]map[Bitboard]Bitboard
 
 func InitMagics(pt PieceType, table []Bitboard, magics []Magic, magicsInit []Bitboard) {
 	var b Bitboard
@@ -772,22 +720,4 @@ func InitMagics(pt PieceType, table []Bitboard, magics []Magic, magicsInit []Bit
 			}
 		}
 	}
-}
-
-func initbak() {
-	now := time.Now()
-	for s := SQ_A0; s <= SQ_I9; s++ {
-		RookAttackMap[s] = map[Bitboard]Bitboard{}
-		mask := SlidingAttack(s, From64(0), ROOK)
-		b := From64(0)
-		for {
-			attack := SlidingAttack(s, b, ROOK)
-			RookAttackMap[s][b] = attack
-			b = b.SubWrap(mask).And(mask)
-			if b == (Bitboard{}) {
-				break
-			}
-		}
-	}
-	log.Printf("init attackmap cost time: %v\n", time.Since(now))
 }
