@@ -1,0 +1,97 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f0e6d0;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+h1 {
+    font-size: 24px;
+    color: #4a3520;
+}
+
+#controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+#controls button {
+    padding: 6px 16px;
+    border: 1px solid #8b7355;
+    border-radius: 4px;
+    background: #d4c4a8;
+    color: #4a3520;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#controls button:hover {
+    background: #c4b498;
+}
+
+#controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#controls label {
+    font-size: 14px;
+    color: #4a3520;
+}
+
+#controls select {
+    padding: 4px 8px;
+    border: 1px solid #8b7355;
+    border-radius: 4px;
+    background: #fff;
+    font-size: 14px;
+}
+
+#board-container {
+    border: 3px solid #8b7355;
+    border-radius: 4px;
+    background: #e8c97a;
+}
+
+canvas {
+    display: block;
+    cursor: pointer;
+}
+
+#status-bar {
+    font-size: 16px;
+    color: #4a3520;
+    min-height: 24px;
+}
+
+.thinking #status-text::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0%   { content: ''; }
+    25%  { content: '.'; }
+    50%  { content: '..'; }
+    75%  { content: '...'; }
+}

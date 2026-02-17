@@ -54,6 +54,7 @@ func Quiescence(alpha, beta Value, pos *PositionNG) (bestScore Value) {
 }
 
 func Negamax(alpha, beta Value, pos *PositionNG, depth uint8, doNullMove bool) (bestScore Value) {
+	MaybeYield()
 	PvLength[pos.GamePly] = pos.GamePly
 	rootNode := pos.GamePly == 0
 	pvNode := alpha != beta-1

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>godogpaw - Chinese Chess</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <h1>godogpaw</h1>
+        <div id="controls">
+            <button id="btn-new-game">New Game</button>
+            <button id="btn-undo">Undo</button>
+            <label for="sel-difficulty">Difficulty:</label>
+            <select id="sel-difficulty">
+                <option value="2">Easy</option>
+                <option value="4" selected>Medium</option>
+                <option value="6">Hard</option>
+                <option value="8">Master</option>
+            </select>
+            <label for="sel-side">Play as:</label>
+            <select id="sel-side">
+                <option value="white" selected>Red (first)</option>
+                <option value="black">Black (second)</option>
+            </select>
+        </div>
+        <div id="board-container">
+            <canvas id="board-canvas" width="521" height="577"></canvas>
+        </div>
+        <div id="status-bar">
+            <span id="status-text">Loading engine...</span>
+        </div>
+    </div>
+
+    <script src="wasm_exec.js"></script>
+    <script src="board.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
