@@ -114,18 +114,18 @@ const (
 	VALUE_MATED_IN_MAX_PLY = -VALUE_MATE_IN_MAX_PLY
 
 	// Mg: mid_game eg: end_game
-	RookValueMg    Value = 1245
-	RookValueEg    Value = 1540
-	AdvisorValueMg Value = 229
-	AdvisorValueEg Value = 187
-	CannonValueMg  Value = 653
-	CannonValueEg  Value = 632
+	RookValueMg    Value = 1200
+	RookValueEg    Value = 1400
+	AdvisorValueMg Value = 220
+	AdvisorValueEg Value = 200
+	CannonValueMg  Value = 640
+	CannonValueEg  Value = 580
 	PawnValueMg    Value = 80
-	PawnValueEg    Value = 129
-	KnightValueMg  Value = 574
-	KnightValueEg  Value = 747
-	BishopValueMg  Value = 308
-	BishopValueEg  Value = 223
+	PawnValueEg    Value = 120
+	KnightValueMg  Value = 550
+	KnightValueEg  Value = 720
+	BishopValueMg  Value = 200
+	BishopValueEg  Value = 180
 )
 
 var PieceValue [PHASE_NB][PIECE_NB]Value = [PHASE_NB][PIECE_NB]Value{

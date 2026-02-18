@@ -43,7 +43,7 @@ func sendLine(format string, args ...interface{}) {
 }
 
 func stopCmd(p *Protocol, args []string) {
-	// TODO
+	engine.StopSearch()
 }
 
 func ponderhitCmd(p *Protocol, args []string) {
@@ -51,25 +51,91 @@ func ponderhitCmd(p *Protocol, args []string) {
 }
 
 func goCmd(p *Protocol, args []string) {
-	// TODO
-	// go [ponder | draw] <思考模式>
-	// 反馈：bestmove <最佳着法> [ponder <后台思考的猜测着法>] [draw | resign]
-	depth := uint8(4)
-	if len(args) > 1 && args[0] == "depth" {
-		newDepth, err := strconv.Atoi(args[1])
-		if err != nil {
-			log.Panic(err)
+	limits := engine.SearchLimits{}
+
+	// Parse arguments
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "depth":
+			if i+1 < len(args) {
+				d, err := strconv.Atoi(args[i+1])
+				if err != nil {
+					log.Printf("invalid depth: %s", args[i+1])
+					return
+				}
+				limits.Depth = uint8(d)
+				i++
+			}
+		case "movetime":
+			if i+1 < len(args) {
+				ms, err := strconv.Atoi(args[i+1])
+				if err != nil {
+					log.Printf("invalid movetime: %s", args[i+1])
+					return
+				}
+				limits.TimeLimit = time.Duration(ms) * time.Millisecond
+				i++
+			}
+		case "wtime":
+			if i+1 < len(args) {
+				ms, err := strconv.Atoi(args[i+1])
+				if err == nil && enginePosition.SideToMove == engine.WHITE {
+					limits.TimeLimit = allocateTime(ms, 0, args)
+				}
+				i++
+			}
+		case "btime":
+			if i+1 < len(args) {
+				ms, err := strconv.Atoi(args[i+1])
+				if err == nil && enginePosition.SideToMove == engine.BLACK {
+					limits.TimeLimit = allocateTime(ms, 0, args)
+				}
+				i++
+			}
+		case "infinite":
+			limits.Infinite = true
 		}
-		depth = uint8(newDepth)
 	}
-	bestMov := enginePosition.SearchPosition(depth)
+
+	// Default: if no depth or time, use depth 4 as fallback
+	if limits.Depth == 0 && limits.TimeLimit == 0 && !limits.Infinite {
+		limits.Depth = 4
+	}
+
+	bestMov := enginePosition.SearchPositionWithLimits(limits)
 	logrus.WithFields(logrus.Fields{
 		"direction": "out",
 		"command":   "bestmove",
 		"move":      engine.Move2Str(bestMov),
-		"depth":     depth,
 	}).Debug("computed move")
 	sendLine("bestmove %s", engine.Move2Str(bestMov))
+}
+
+// allocateTime calculates how much time to spend on this move.
+func allocateTime(remainingMs int, incrementMs int, args []string) time.Duration {
+	// Parse increment if present
+	for i := 0; i < len(args)-1; i++ {
+		if args[i] == "winc" || args[i] == "binc" {
+			inc, err := strconv.Atoi(args[i+1])
+			if err == nil {
+				incrementMs = inc
+			}
+		}
+	}
+
+	// Allocate time: remaining/30 + increment, with safety margin
+	allocated := remainingMs/30 + incrementMs
+	// Don't use more than 80% of remaining time
+	maxTime := remainingMs * 80 / 100
+	if allocated > maxTime {
+		allocated = maxTime
+	}
+	// Minimum 100ms
+	if allocated < 100 {
+		allocated = 100
+	}
+
+	return time.Duration(allocated) * time.Millisecond
 }
 
 func banmovesCmd(p *Protocol, args []string) {

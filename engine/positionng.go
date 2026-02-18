@@ -60,6 +60,10 @@ type StateInfo struct {
 	checkSquares    [PIECE_TYPE_NB]Bitboard
 	needSlowCheck   bool
 	capturedPiece   Piece
+
+	// For counter-move tracking: save previous last move info
+	prevLastMoveTo Square
+	prevLastMovePc Piece
 }
 
 type StateInfoStack []*StateInfo
@@ -91,8 +95,11 @@ type PositionNG struct {
 	// Bloom filter for fast repetition filtering
 	Filter BloomFilter
 
-	History HistoryTable
-	Killers [MAX_MOVES][2]MoveNG
+	History      HistoryTable
+	Killers      [MAX_MOVES][2]MoveNG
+	CounterMoves [PIECE_NB][SQUARE_NB]MoveNG
+	LastMoveTo   Square // tracks the destination square of the last move for counter-move lookup
+	LastMovePc   Piece  // tracks the piece that made the last move
 }
 
 func (p *PositionNG) PieceOn(s Square) Piece {
@@ -106,6 +113,21 @@ func (p *PositionNG) Empty(s Square) bool {
 
 func (p *PositionNG) MovedPiece(m MoveNG) Piece {
 	return p.PieceOn(FromSQ(m))
+}
+
+// GetCounterMove returns the counter-move for the last move played.
+func (p *PositionNG) GetCounterMove() MoveNG {
+	if p.LastMovePc != NO_PIECE && IsOKSquare(p.LastMoveTo) {
+		return p.CounterMoves[p.LastMovePc][p.LastMoveTo]
+	}
+	return MOVE_NONE
+}
+
+// StoreCounterMove records the current move as the counter-move for the previous move.
+func (p *PositionNG) StoreCounterMove(m MoveNG) {
+	if p.LastMovePc != NO_PIECE && IsOKSquare(p.LastMoveTo) {
+		p.CounterMoves[p.LastMovePc][p.LastMoveTo] = m
+	}
 }
 
 func (p *PositionNG) PiecesAllColor(pt ...PieceType) Bitboard {
@@ -303,7 +325,7 @@ func (pos *PositionNG) GivesCheck(m MoveNG) bool {
 }
 
 func (pos *PositionNG) Capture(m MoveNG) bool {
-	return pos.Empty(ToSQ(m))
+	return !pos.Empty(ToSQ(m))
 }
 
 func (pos *PositionNG) GenerateMoves(us Color, pt PieceType, typ GenType, movieList []MoveNG, target Bitboard) (size uint8) {
@@ -611,6 +633,9 @@ func (pos *PositionNG) doMove(m MoveNG, newSt *StateInfo, givesCheck bool) {
 	newSt.Check10 = st.Check10
 	newSt.Rule60 = st.Rule60
 	newSt.PliesFromNull = st.PliesFromNull
+	// Save counter-move tracking state
+	newSt.prevLastMoveTo = pos.LastMoveTo
+	newSt.prevLastMovePc = pos.LastMovePc
 	pos.St.Push(newSt)
 	st = newSt
 
@@ -674,6 +699,10 @@ func (pos *PositionNG) doMove(m MoveNG, newSt *StateInfo, givesCheck bool) {
 	// assert(givesCheck == bool(st->checkersBB));
 	pos.SideToMove = notColor(pos.SideToMove)
 
+	// Track last move for counter-move heuristic
+	pos.LastMoveTo = to
+	pos.LastMovePc = pc
+
 	// Update king attacks used for fast check detection
 	pos.SetCheckInfo()
 
@@ -699,6 +728,10 @@ func (pos *PositionNG) UndoMove(m MoveNG) {
 		capsq := to
 		pos.PutPiece(st.capturedPiece, capsq) // Restore the captured piece
 	}
+
+	// Restore counter-move tracking state
+	pos.LastMoveTo = st.prevLastMoveTo
+	pos.LastMovePc = st.prevLastMovePc
 
 	// Finally point our state pointer back to the previous state
 	pos.St.Pop()
@@ -761,6 +794,9 @@ func (pos *PositionNG) resetToEmpty() {
 	clear(pos.KingSQ[:])
 	clear(pos.Killers[:])
 	pos.History = HistoryTable{}
+	pos.CounterMoves = [PIECE_NB][SQUARE_NB]MoveNG{}
+	pos.LastMoveTo = 0
+	pos.LastMovePc = NO_PIECE
 	pos.Filter.Reset()
 	pos.SideToMove = WHITE
 	pos.GamePly = 0

@@ -10,6 +10,7 @@ const (
 	STAGE_NOISY
 	STAGE_KILLER_1
 	STAGE_KILLER_2
+	STAGE_COUNTER_MOVE
 	STAGE_GENERATE_QUIET
 	STAGE_QUIET
 	STAGE_DONE
@@ -22,16 +23,17 @@ type MovePicker struct {
 	NoisySize  uint8
 	QuietSize  uint8
 
-	TableMove MoveNG
-	Killer1   MoveNG
-	Killer2   MoveNG
-	Moves     [MAX_MOVES]MoveNG
-	Values    [MAX_MOVES]Value
+	TableMove   MoveNG
+	Killer1     MoveNG
+	Killer2     MoveNG
+	CounterMove MoveNG
+	Moves       [MAX_MOVES]MoveNG
+	Values      [MAX_MOVES]Value
 
 	History *HistoryTable
 }
 
-func InitalizeMovePicker(mp *MovePicker, skipQuiets bool, tableMove, killer1, killer2 MoveNG, history *HistoryTable) {
+func InitalizeMovePicker(mp *MovePicker, skipQuiets bool, tableMove, killer1, killer2, counterMove MoveNG, history *HistoryTable) {
 	mp.SkipQuiets = skipQuiets
 	mp.Stage = STAGE_TABLE
 	mp.Split = 0
@@ -47,6 +49,12 @@ func InitalizeMovePicker(mp *MovePicker, skipQuiets bool, tableMove, killer1, ki
 		mp.Killer2 = killer2
 	} else {
 		mp.Killer2 = MOVE_NONE
+	}
+	// Counter-move: skip if it duplicates TT move or a killer
+	if counterMove != tableMove && counterMove != killer1 && counterMove != killer2 {
+		mp.CounterMove = counterMove
+	} else {
+		mp.CounterMove = MOVE_NONE
 	}
 	mp.History = history
 }
@@ -96,11 +104,6 @@ func EvaluateNoisyMoves(mp *MovePicker, pos *PositionNG) {
 
 		// Use the standard MVV-LVA
 		mp.Values[i] = PieceValue[MG][toPiece] - tmpV[fromPieceType-1]
-
-		// if constexpr (Type == CAPTURES)
-		//     m.value =  (7 * int(PieceValue[MG][pos.piece_on(to_sq(m))])
-		//              +     (*captureHistory)[pos.moved_piece(m)][to_sq(m)][type_of(pos.piece_on(to_sq(m)))]) / 16;
-
 	}
 }
 
@@ -148,7 +151,7 @@ func SelectNextMove(mp *MovePicker, pos *PositionNG) MoveNG {
 			mp.Moves[best] = mp.Moves[mp.NoisySize]
 			mp.Values[best] = mp.Values[mp.NoisySize]
 
-			// Don't play the killer moves twice
+			// Don't play the TT move twice
 			if bestMove == mp.TableMove {
 				return SelectNextMove(mp, pos)
 			}
@@ -158,6 +161,9 @@ func SelectNextMove(mp *MovePicker, pos *PositionNG) MoveNG {
 			}
 			if bestMove == mp.Killer2 {
 				mp.Killer2 = MOVE_NONE
+			}
+			if bestMove == mp.CounterMove {
+				mp.CounterMove = MOVE_NONE
 			}
 			return bestMove
 		}
@@ -174,7 +180,6 @@ func SelectNextMove(mp *MovePicker, pos *PositionNG) MoveNG {
 		fallthrough
 	case STAGE_KILLER_1:
 		// Play the killer move if it is from this position.
-		// position, and also advance to the next stage
 		mp.Stage = STAGE_KILLER_2
 		if IsOKMove(mp.Killer1) && pos.PseudoLegal(mp.Killer1) {
 			return mp.Killer1
@@ -182,15 +187,20 @@ func SelectNextMove(mp *MovePicker, pos *PositionNG) MoveNG {
 		fallthrough
 	case STAGE_KILLER_2:
 		// Play the killer move if it is from this position.
-		// position, and also advance to the next stage
-		mp.Stage = STAGE_GENERATE_QUIET
+		mp.Stage = STAGE_COUNTER_MOVE
 		if IsOKMove(mp.Killer2) && pos.PseudoLegal(mp.Killer2) {
 			return mp.Killer2
 		}
 		fallthrough
+	case STAGE_COUNTER_MOVE:
+		// Play the counter-move if it is from this position.
+		mp.Stage = STAGE_GENERATE_QUIET
+		if IsOKMove(mp.CounterMove) && pos.PseudoLegal(mp.CounterMove) {
+			return mp.CounterMove
+		}
+		fallthrough
 	case STAGE_GENERATE_QUIET:
 		// Generate all quiet moves and evaluate them
-		// and also advance to the final fruitful stage
 		mp.QuietSize = pos.Generate(QUIETS, mp.Moves[mp.Split:])
 		EvaluateQuietMoves(mp, pos)
 		mp.Stage = STAGE_QUIET
@@ -216,7 +226,8 @@ func SelectNextMove(mp *MovePicker, pos *PositionNG) MoveNG {
 			// Don't play a move more than once
 			if bestMove == mp.TableMove ||
 				bestMove == mp.Killer1 ||
-				bestMove == mp.Killer2 {
+				bestMove == mp.Killer2 ||
+				bestMove == mp.CounterMove {
 				return SelectNextMove(mp, pos)
 			}
 			return bestMove
