@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/json"
 	"syscall/js"
+	"time"
 
 	"github.com/hmgle/godogpaw/engine"
 )
@@ -132,12 +133,17 @@ func engineSearch(_ js.Value, args []js.Value) any {
 	if len(args) > 0 && args[0].Int() > 0 {
 		depth = uint8(args[0].Int())
 	}
+	var timeLimit time.Duration
+	if len(args) > 1 && args[1].Int() > 0 {
+		timeLimit = time.Duration(args[1].Int()) * time.Millisecond
+	}
 
 	// Return a Promise so JS can await the result
 	handler := js.FuncOf(func(_ js.Value, promiseArgs []js.Value) any {
 		resolve := promiseArgs[0]
 		go func() {
-			bestMove := pos.SearchPosition(depth)
+			limits := engine.SearchLimits{Depth: depth, TimeLimit: timeLimit}
+			bestMove := pos.SearchPositionWithLimits(limits)
 			if !engine.IsOKMove(bestMove) {
 				resolve.Invoke("")
 				return

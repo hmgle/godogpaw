@@ -3,6 +3,8 @@
 let board;
 let playerSide = 0; // 0 = WHITE/RED, 1 = BLACK
 let aiThinking = false;
+let searchDepth = 6;
+let searchTimeMs = 5000;
 
 const STATE_IDLE = 0;
 const STATE_SELECTED = 1;
@@ -17,10 +19,6 @@ async function initWasm() {
     go.run(result.instance);
 }
 
-function getDepth() {
-    return parseInt(document.getElementById('sel-difficulty').value, 10);
-}
-
 function setStatus(text) {
     document.getElementById('status-text').textContent = text;
 }
@@ -30,6 +28,9 @@ function setThinking(on) {
     document.getElementById('app').classList.toggle('thinking', on);
     document.getElementById('btn-undo').disabled = on;
     document.getElementById('btn-new-game').disabled = on;
+    // Disable/enable difficulty controls
+    document.querySelectorAll('.preset-btn').forEach(b => b.disabled = on);
+    document.querySelectorAll('#custom-panel input').forEach(el => el.disabled = on);
     if (on) {
         setStatus('AI thinking...');
     }
@@ -65,8 +66,7 @@ async function aiMove() {
     // before the CPU-intensive WASM search blocks the main thread.
     await new Promise(r => setTimeout(r, 0));
     try {
-        const depth = getDepth();
-        const moveStr = await engineSearch(depth);
+        const moveStr = await engineSearch(searchDepth, searchTimeMs);
         if (!moveStr) {
             setStatus('AI has no moves — you win!');
             setThinking(false);
@@ -170,6 +170,55 @@ function selectPiece(sq) {
     interactionState = STATE_SELECTED;
 }
 
+function initDifficultyControls() {
+    const presetBtns = document.querySelectorAll('.preset-btn:not(#btn-custom)');
+    const btnCustom = document.getElementById('btn-custom');
+    const customPanel = document.getElementById('custom-panel');
+    const sliderDepth = document.getElementById('slider-depth');
+    const sliderTime = document.getElementById('slider-time');
+    const valDepth = document.getElementById('val-depth');
+    const valTime = document.getElementById('val-time');
+
+    function setActivePreset(btn) {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function updateTimeLabel(secs) {
+        valTime.textContent = secs === 0 ? '不限时' : secs + '秒';
+    }
+
+    presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            setActivePreset(btn);
+            searchDepth = parseInt(btn.dataset.depth, 10);
+            searchTimeMs = parseInt(btn.dataset.time, 10);
+            customPanel.classList.add('hidden');
+            // Sync sliders with preset values
+            sliderDepth.value = searchDepth;
+            valDepth.textContent = searchDepth;
+            sliderTime.value = Math.round(searchTimeMs / 1000);
+            updateTimeLabel(Math.round(searchTimeMs / 1000));
+        });
+    });
+
+    btnCustom.addEventListener('click', () => {
+        setActivePreset(btnCustom);
+        customPanel.classList.remove('hidden');
+    });
+
+    sliderDepth.addEventListener('input', () => {
+        searchDepth = parseInt(sliderDepth.value, 10);
+        valDepth.textContent = searchDepth;
+    });
+
+    sliderTime.addEventListener('input', () => {
+        const secs = parseInt(sliderTime.value, 10);
+        searchTimeMs = secs * 1000;
+        updateTimeLabel(secs);
+    });
+}
+
 // Init
 (async function main() {
     const canvas = document.getElementById('board-canvas');
@@ -182,6 +231,7 @@ function selectPiece(sq) {
     canvas.addEventListener('click', handleBoardClick);
     document.getElementById('btn-new-game').addEventListener('click', startNewGame);
     document.getElementById('btn-undo').addEventListener('click', undoMove);
+    initDifficultyControls();
 
     startNewGame();
 })();

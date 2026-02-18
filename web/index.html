@@ -12,18 +12,32 @@
         <div id="controls">
             <button id="btn-new-game">New Game</button>
             <button id="btn-undo">Undo</button>
-            <label for="sel-difficulty">Difficulty:</label>
-            <select id="sel-difficulty">
-                <option value="2">Easy</option>
-                <option value="4" selected>Medium</option>
-                <option value="6">Hard</option>
-                <option value="8">Master</option>
-            </select>
             <label for="sel-side">Play as:</label>
             <select id="sel-side">
                 <option value="white" selected>Red (first)</option>
                 <option value="black">Black (second)</option>
             </select>
+        </div>
+        <div id="difficulty-section">
+            <div id="preset-bar">
+                <button class="preset-btn" data-depth="2" data-time="1000">入门</button>
+                <button class="preset-btn" data-depth="4" data-time="3000">初级</button>
+                <button class="preset-btn active" data-depth="6" data-time="5000">中级</button>
+                <button class="preset-btn" data-depth="8" data-time="15000">高级</button>
+                <button class="preset-btn" data-depth="12" data-time="30000">大师</button>
+                <button class="preset-btn" id="btn-custom">自定义</button>
+            </div>
+            <div id="custom-panel" class="hidden">
+                <div class="slider-row">
+                    <label>搜索深度: <span id="val-depth">6</span></label>
+                    <input type="range" id="slider-depth" min="1" max="15" value="6">
+                </div>
+                <div class="slider-row">
+                    <label>时间限制: <span id="val-time">5秒</span></label>
+                    <input type="range" id="slider-time" min="0" max="60" value="5">
+                </div>
+                <div class="slider-hint">时间为0表示不限时（仅按深度搜索）</div>
+            </div>
         </div>
         <div id="board-container">
             <canvas id="board-canvas" width="521" height="577"></canvas>
