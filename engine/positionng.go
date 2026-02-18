@@ -61,6 +61,8 @@ type StateInfo struct {
 	needSlowCheck   bool
 	capturedPiece   Piece
 
+	lastMove MoveNG // the move that led to this state
+
 	// For counter-move tracking: save previous last move info
 	prevLastMoveTo Square
 	prevLastMovePc Piece
@@ -638,8 +640,7 @@ func (pos *PositionNG) doMove(m MoveNG, newSt *StateInfo, givesCheck bool) {
 	newSt.prevLastMovePc = pos.LastMovePc
 	pos.St.Push(newSt)
 	st = newSt
-
-	// Increment ply counters.
+	st.lastMove = m
 	// In particular, rule60 will be reset to zero later on in case of a capture.
 	pos.GamePly++
 	if givesCheck {
@@ -766,6 +767,7 @@ func (pos *PositionNG) DoNullMove(newSt *StateInfo) {
 
 	pos.St.Push(newSt)
 	st = newSt
+	st.lastMove = MOVE_NULL
 	st.key ^= zkey.side
 	st.Rule60++
 	st.PliesFromNull = 0
@@ -907,27 +909,22 @@ func (pos *PositionNG) SetState() {
 }
 
 func (pos *PositionNG) IsRepetition() bool {
-	// TODO
 	st := pos.St.Top()
-	if st.PliesFromNull < 7 {
-		return false
+	stackLen := len(pos.St)
+	maxLookback := st.PliesFromNull
+	if stackLen-1 < maxLookback {
+		maxLookback = stackLen - 1
 	}
-	for i := 0; i < 3; i++ {
-		st1 := pos.St.PrevCnt(i)
-		st2 := pos.St.PrevCnt(i + 2)
-		if st1.key != st2.key {
-			return false
+	for i := 4; i <= maxLookback; i += 2 {
+		if pos.St.PrevCnt(i).key == st.key {
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 func (pos *PositionNG) IsDraw() bool {
-	// TODO
-	if pos.St.Top().Rule60 >= 120 || pos.IsRepetition() {
-		return true
-	}
-	return false
+	return pos.St.Top().Rule60 >= 120
 }
 
 // perft() is our utility to verify move generation. All the leaf nodes up

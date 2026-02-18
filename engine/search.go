@@ -42,9 +42,6 @@ func shouldStop() bool {
 	return stopFlag.Load() != 0
 }
 
-// Repetition penalty value (approximately cannon value).
-const repetitionPenalty Value = 640
-
 func StorePvMove(move MoveNG, searchPly int) {
 	PvTable[searchPly*int(MAX_MOVES)+searchPly] = move
 	for nextPly := searchPly + 1; nextPly < PvLength[searchPly+1]; nextPly++ {
@@ -101,8 +98,21 @@ func Negamax(alpha, beta Value, pos *PositionNG, depth uint8, doNullMove bool) (
 	var score Value
 	var legalMoves int
 
+	// Rule60 draw
 	if pos.IsDraw() {
 		return 0
+	}
+
+	// Repetition — classify per Xiangqi rules (before TT probe)
+	if pos.GamePly > 0 && pos.IsRepetition() {
+		switch pos.ClassifyRepetition() {
+		case REP_DRAW:
+			return 0
+		case REP_WIN:
+			return VALUE_MATE - Value(pos.GamePly)
+		case REP_LOSE:
+			return -(VALUE_MATE - Value(pos.GamePly))
+		}
 	}
 
 	// Check time periodically (every 4096 nodes at root level)
@@ -119,9 +129,6 @@ func Negamax(alpha, beta Value, pos *PositionNG, depth uint8, doNullMove bool) (
 		if score != int32(NO_HASH) && !pvNode {
 			return score
 		}
-	}
-	if pos.GamePly > 0 && pos.IsRepetition() {
-		return -repetitionPenalty
 	}
 	if depth == 0 {
 		return Quiescence(alpha, beta, pos)
