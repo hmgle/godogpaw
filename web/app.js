@@ -61,6 +61,9 @@ function refreshBoard() {
 
 async function aiMove() {
     setThinking(true);
+    // Yield to browser so it can repaint the board (showing the human move)
+    // before the CPU-intensive WASM search blocks the main thread.
+    await new Promise(r => setTimeout(r, 0));
     try {
         const depth = getDepth();
         const moveStr = await engineSearch(depth);
