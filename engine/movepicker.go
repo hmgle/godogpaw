@@ -60,8 +60,6 @@ func InitalizeMovePicker(mp *MovePicker, skipQuiets bool, tableMove, killer1, ki
 }
 
 func EvaluateNoisyMoves(mp *MovePicker, pos *PositionNG) {
-	tmpV := [PIECE_TYPE_NB]Value{7, 3, 6, 2, 5, 4, 8, 5}
-
 	// prune removes a stale entry by swapping it with the tail of the noisy move list.
 	prune := func(idx int) bool {
 		if mp.NoisySize == 0 {
@@ -102,8 +100,15 @@ func EvaluateNoisyMoves(mp *MovePicker, pos *PositionNG) {
 			continue
 		}
 
-		// Use the standard MVV-LVA
-		mp.Values[i] = PieceValue[MG][toPiece] - tmpV[fromPieceType-1]
+		seeScore := pos.SEE(move)
+		score := PieceValue[MG][toPiece]*16 - PieceValue[MG][fromPiece]/8 + seeScore*4
+		if seeScore < 0 {
+			score += seeScore * 8
+		}
+		if pos.GivesCheck(move) {
+			score += 48
+		}
+		mp.Values[i] = score
 	}
 }
 

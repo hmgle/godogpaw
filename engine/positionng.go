@@ -48,6 +48,9 @@ func init() {
 type StateInfo struct {
 	// Copied when making a move
 	Material      [COLOR_NB]Value
+	MaterialEG    [COLOR_NB]Value
+	PST           [PHASE_NB][COLOR_NB]Value
+	Phase         int
 	Check10       [COLOR_NB]int16
 	Rule60        int
 	PliesFromNull int
@@ -632,6 +635,9 @@ func (pos *PositionNG) doMove(m MoveNG, newSt *StateInfo, givesCheck bool) {
 
 	k := st.key ^ zkey.side
 	newSt.Material = st.Material
+	newSt.MaterialEG = st.MaterialEG
+	newSt.PST = st.PST
+	newSt.Phase = st.Phase
 	newSt.Check10 = st.Check10
 	newSt.Rule60 = st.Rule60
 	newSt.PliesFromNull = st.PliesFromNull
@@ -659,6 +665,8 @@ func (pos *PositionNG) doMove(m MoveNG, newSt *StateInfo, givesCheck bool) {
 	to := ToSQ(m)
 	pc := pos.PieceOn(from)
 	captured := pos.PieceOn(to)
+	pcPSTIdx := pstIndex(pc, from)
+	toPSTIdx := pstIndex(pc, to)
 
 	//   assert(color_of(pc) == us);
 	//   assert(captured == NO_PIECE || color_of(captured) == them);
@@ -667,6 +675,11 @@ func (pos *PositionNG) doMove(m MoveNG, newSt *StateInfo, givesCheck bool) {
 	if captured != NO_PIECE {
 		capsq := to
 		st.Material[them] -= PieceValue[MG][captured]
+		st.MaterialEG[them] -= PieceValue[EG][captured]
+		capturedPSTIdx := pstIndex(captured, capsq)
+		st.PST[MG][them] -= pstMG[TypeOf(captured)][capturedPSTIdx]
+		st.PST[EG][them] -= pstEG[TypeOf(captured)][capturedPSTIdx]
+		st.Phase -= phaseContribution(TypeOf(captured))
 
 		// Update board and piece lists
 		pos.RemovePiece(capsq)
@@ -681,6 +694,8 @@ func (pos *PositionNG) doMove(m MoveNG, newSt *StateInfo, givesCheck bool) {
 	}
 	// Update hash key
 	k ^= zkey.psq[pc][from] ^ zkey.psq[pc][to]
+	st.PST[MG][us] += pstMG[TypeOf(pc)][toPSTIdx] - pstMG[TypeOf(pc)][pcPSTIdx]
+	st.PST[EG][us] += pstEG[TypeOf(pc)][toPSTIdx] - pstEG[TypeOf(pc)][pcPSTIdx]
 
 	pos.MovePiece(from, to)
 
@@ -755,6 +770,9 @@ func (pos *PositionNG) DoNullMove(newSt *StateInfo) {
 	pos.Filter.Incr(st.key)
 
 	newSt.Material = st.Material
+	newSt.MaterialEG = st.MaterialEG
+	newSt.PST = st.PST
+	newSt.Phase = st.Phase
 	newSt.Check10 = st.Check10
 	newSt.Rule60 = st.Rule60
 	newSt.key = st.key
@@ -891,6 +909,10 @@ func (pos *PositionNG) SetState() {
 	st.key = 0
 	st.Material[WHITE] = VALUE_ZERO
 	st.Material[BLACK] = VALUE_ZERO
+	st.MaterialEG[WHITE] = VALUE_ZERO
+	st.MaterialEG[BLACK] = VALUE_ZERO
+	st.PST = [PHASE_NB][COLOR_NB]Value{}
+	st.Phase = 0
 	st.checkersBB = pos.CheckersTo2(notColor(pos.SideToMove), pos.Square(KING, pos.SideToMove))
 
 	pos.SetCheckInfo()
@@ -901,7 +923,15 @@ func (pos *PositionNG) SetState() {
 		st.key ^= zkey.psq[pc][s]
 		if TypeOf(pc) != KING {
 			st.Material[ColorOf(pc)] += PieceValue[MG][pc]
+			st.MaterialEG[ColorOf(pc)] += PieceValue[EG][pc]
+			idx := pstIndex(pc, s)
+			st.PST[MG][ColorOf(pc)] += pstMG[TypeOf(pc)][idx]
+			st.PST[EG][ColorOf(pc)] += pstEG[TypeOf(pc)][idx]
+			st.Phase += phaseContribution(TypeOf(pc))
 		}
+	}
+	if st.Phase > TotalPhase {
+		st.Phase = TotalPhase
 	}
 	if pos.SideToMove == BLACK {
 		st.key ^= zkey.side
