@@ -10,13 +10,45 @@ const STATE_IDLE = 0;
 const STATE_SELECTED = 1;
 let interactionState = STATE_IDLE;
 
+const REQUIRED_ENGINE_APIS = [
+    'engineNewGame',
+    'engineGetBoard',
+    'engineGetLegalMovesFrom',
+    'engineDoMoveBySquares',
+    'engineUndoMove',
+    'engineSearch',
+];
+
+function getMissingEngineApis() {
+    return REQUIRED_ENGINE_APIS.filter(name => typeof window[name] !== 'function');
+}
+
 async function initWasm() {
     const go = new Go();
+    const wasmUrl = new URL('godogpaw.wasm', document.baseURI);
     const result = await WebAssembly.instantiateStreaming(
-        fetch('godogpaw.wasm'),
+        fetch(wasmUrl),
         go.importObject
     );
-    go.run(result.instance);
+
+    let runtimeError = null;
+    go.run(result.instance).catch(err => {
+        runtimeError = err;
+        console.error('Go runtime error:', err);
+        setStatus('Engine crashed during startup.');
+    });
+
+    // Give Go a tick to publish its JS bridge functions.
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    if (runtimeError) {
+        throw runtimeError;
+    }
+
+    const missing = getMissingEngineApis();
+    if (missing.length > 0) {
+        throw new Error(`Engine API missing after startup: ${missing.join(', ')}`);
+    }
 }
 
 function setStatus(text) {
@@ -225,7 +257,13 @@ function initDifficultyControls() {
     board = new BoardRenderer(canvas);
 
     setStatus('Loading engine...');
-    await initWasm();
+    try {
+        await initWasm();
+    } catch (e) {
+        console.error('Engine init error:', e);
+        setStatus('Engine failed to load.');
+        return;
+    }
     setStatus('Engine ready.');
 
     canvas.addEventListener('click', handleBoardClick);
