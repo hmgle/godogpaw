@@ -11,4 +11,4 @@ Why is it called `godogpaw`? It from the book "I Think, Therefore I Laugh":
 
 ## Demo
 
-https://hmgle.github.io/dogpawasm/
+https://hmgle.github.io/godogpaw/
